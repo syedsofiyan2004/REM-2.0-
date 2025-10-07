@@ -88,6 +88,7 @@
 
   <aside id="panel">
     <div style="font-weight:700;letter-spacing:.4px">Chat</div>
+    <div id="current-mode" style="font-size:12px;color:#78859a;margin-bottom:8px;">Mode: Default</div>
     <div id="log"></div>
     <div class="row">
       <input id="inp" placeholder="Say something…" />
@@ -103,11 +104,12 @@
   <button class="pill" data-say="Guide me through a 30-second breathing exercise.">🧘 Breathe</button>
   <button class="pill" data-say="Teach me a fun fact about space.">🛰️ Space</button>
   <button class="pill" data-say="Help me plan a quick healthy snack.">🥗 Snack</button>
-  <!-- Style quick toggles (Grok-like modes) -->
-  <button class="pill style" data-style="witty" title="Witty mode">✨ Witty</button>
-  <button class="pill style" data-style="empathetic" title="Empathetic mode">💞 Empathetic</button>
-  <button class="pill style" data-style="precise" title="Precise mode">🧠 Precise</button>
-  <button class="pill style" data-style="spicy" title="Flirty but safe">🌶️ Spicy</button>
+  <!-- Conversation styles -->
+  <button class="pill style" data-style="witty" title="Add humor and playful responses">✨ Witty</button>
+  <button class="pill style" data-style="empathetic" title="Supportive and understanding">💞 Caring</button>
+  <button class="pill style" data-style="precise" title="Direct and concise answers">🧠 Precise</button>
+  <button class="pill style" data-style="spicy" title="Playful and flirtatious (but respectful)">🌶️ Playful</button>
+  <button class="pill" id="resetStyle" title="Return to default mode">🔄 Default</button>
   <button class="pill" id="cardBtn" title="Quick knowledge card">🃏 Card</button>
     </div>
   </aside>
@@ -883,15 +885,57 @@ document.getElementById('cardBtn')?.addEventListener('click', async ()=>{
 // Style chips (Grok-like persona modes)
 for (const b of styleButtons()){
   b.addEventListener('click', ()=>{
-  const chosen = b.getAttribute('data-style') || null;
-  // Toggle off if clicking the same style again
-  selectedStyle = (selectedStyle === chosen) ? null : chosen;
+    const chosen = b.getAttribute('data-style') || null;
+    const wasSelected = selectedStyle === chosen;
+    
+    // Toggle off if clicking the same style again
+    selectedStyle = wasSelected ? null : chosen;
+    
     // Visual toggle
     styleButtons().forEach(x=> x.style.outline = '');
-  if(selectedStyle){ b.style.outline = '2px solid var(--green)'; }
-  showSubtitle(`Mode: ${selectedStyle||'default'}`, 1500);
+    if(selectedStyle){ 
+      b.style.outline = '2px solid var(--green)'; 
+      b.style.boxShadow = '0 0 8px rgba(0, 214, 143, 0.3)';
+    }
+    
+    // Update mode display
+    const modeDisplay = document.getElementById('current-mode');
+    const modeText = selectedStyle ? `${selectedStyle.charAt(0).toUpperCase() + selectedStyle.slice(1)}` : 'Default';
+    if(modeDisplay) modeDisplay.textContent = `Mode: ${modeText}`;
+    
+    // Clear feedback
+    showSubtitle(`💬 ${selectedStyle ? `${selectedStyle} mode active` : 'default mode'}`, 2000);
+    
+    // Store preference
+    try{ localStorage.setItem('selected-style', selectedStyle || ''); }catch{}
   });
 }
+
+// Restore saved style preference
+try{
+  const savedStyle = localStorage.getItem('selected-style');
+  if(savedStyle && savedStyle !== ''){
+    selectedStyle = savedStyle;
+    const btn = document.querySelector(`[data-style="${savedStyle}"]`);
+    if(btn){ 
+      btn.style.outline = '2px solid var(--green)';
+      btn.style.boxShadow = '0 0 8px rgba(0, 214, 143, 0.3)';
+    }
+    // Update mode display
+    const modeDisplay = document.getElementById('current-mode');
+    if(modeDisplay) modeDisplay.textContent = `Mode: ${savedStyle.charAt(0).toUpperCase() + savedStyle.slice(1)}`;
+  }
+}catch{}
+
+// Reset style button
+document.getElementById('resetStyle')?.addEventListener('click', ()=>{
+  selectedStyle = null;
+  styleButtons().forEach(x=> { x.style.outline = ''; x.style.boxShadow = ''; });
+  const modeDisplay = document.getElementById('current-mode');
+  if(modeDisplay) modeDisplay.textContent = 'Mode: Default';
+  showSubtitle('💬 default mode', 1500);
+  try{ localStorage.setItem('selected-style', ''); }catch{}
+});
 
 function dolly(f){
   try{

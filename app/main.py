@@ -148,19 +148,22 @@ CHAT_MAX_CONCURRENCY = int(os.getenv("CHAT_MAX_CONCURRENCY", "4"))
 _chat_gate = threading.Semaphore(CHAT_MAX_CONCURRENCY)
 
 STYLE_GUIDES = {
-    "witty": "Style: Witty, playful, and concise. Use tasteful humor, friendly teasing, and natural contractions.",
-    "precise": "Style: Direct and clear. Short sentences, minimal filler.",
-    "empathetic": "Style: Warm, supportive, and validating. Brief, caring responses.",
+    "witty": "Style: Add light humor and playful comments when appropriate. Keep it clever but friendly.",
+    "precise": "Style: Be direct and concise. Give clear, factual responses without extra flourishes.",
+    "empathetic": "Style: Focus on being understanding and supportive. Show care for the user's feelings and situation.",
     "spicy": (
-        "Style: Flirty, cheeky, and charming (PG-13). Be respectful and consensual. No explicit content or slurs; "
-        "keep it playful with compliments and light banter only. Politely decline crossing any boundary."
+        "Style: Be more playful and flirtatious, but keep it light and respectful. Use compliments and charm, "
+        "but maintain appropriate boundaries. No explicit content."
     ),
 }
 
 def _compose_system(base: str, style: Optional[str]) -> str:
     s = (style or "").strip().lower()
     guide = STYLE_GUIDES.get(s)
-    return f"{base}\n\n{guide}" if guide else base
+    if guide:
+        return f"{base}\n\n{guide}\n\nRemember: You are currently in {s} mode. Apply this style consistently to all responses."
+    else:
+        return f"{base}\n\nRemember: You are in default mode. Be friendly, helpful, and conversational without any special style modifications."
 
 def _user_for_style(text: str, style: Optional[str]) -> str:
     s = (style or "").strip().lower()
