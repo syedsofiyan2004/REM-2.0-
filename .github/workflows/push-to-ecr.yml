@@ -1,18 +1,21 @@
-name: Build and Push to ECR (latest)
+name: Deploy to AWS - Complete CI/CD
 
 on:
   push:
     branches:
       - main
+  workflow_dispatch:
+
+env:
+  ECR_REPOSITORY: rem-app
+  AWS_REGION: ap-south-1
+  ASG_NAME: rem-asg
 
 jobs:
-  build-and-push:
+  deploy:
     runs-on: ubuntu-latest
-    env:
-      ECR_REPOSITORY: rem-app
-      AWS_REGION: ap-south-1
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Configure AWS credentials
@@ -26,27 +29,80 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Extract metadata (tags, labels)
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}
-          tags: |
-            type=raw,value=latest
-            type=sha,format=short
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            APP_BUILD=${{ github.sha }}
-
-      - name: Echo tip
+      - name: Build, tag, and push Docker image
+        id: build-image
         run: |
-          echo "Pushed tags: ${{ steps.meta.outputs.tags }}"
-          echo "Instances will auto-update via Watchtower within ~60s."
+          # Build image with build args
+          docker build -t $ECR_REPOSITORY:latest \
+            --build-arg APP_BUILD=${{ github.sha }} \
+            .
+          
+          # Tag for ECR
+          ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}
+          docker tag $ECR_REPOSITORY:latest $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker tag $ECR_REPOSITORY:latest $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
+          
+          # Push both tags
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
+          
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:latest" >> $GITHUB_OUTPUT
+          echo "image-sha=$ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}" >> $GITHUB_OUTPUT
+
+      - name: Wait for Watchtower to update containers
+        run: |
+          echo "🚀 New image pushed to ECR!"
+          echo "📦 Image: ${{ steps.build-image.outputs.image }}"
+          echo "⏱️  Watchtower will detect and update running containers within ~60 seconds"
+          echo "🔄 Waiting 90 seconds for deployment to complete..."
+          sleep 90
+
+      - name: Verify deployment
+        run: |
+          echo "🔍 Checking application health..."
+          
+          # Get ALB DNS name
+          ALB_DNS=$(aws elbv2 describe-load-balancers \
+            --names rem-alb \
+            --query 'LoadBalancers[0].DNSName' \
+            --output text \
+            --region $AWS_REGION)
+          
+          echo "🌐 Application URL: http://$ALB_DNS"
+          
+          # Check health endpoint
+          if curl -f -s "http://$ALB_DNS/api/health" > /dev/null; then
+            echo "✅ Health check passed - Application is running!"
+          else
+            echo "❌ Health check failed - There might be an issue"
+            exit 1
+          fi
+          
+          # Store URL for later steps
+          echo "app-url=http://$ALB_DNS" >> $GITHUB_OUTPUT
+        id: verify
+
+      - name: Force refresh instances (if needed)
+        if: failure()
+        run: |
+          echo "🔄 Health check failed, forcing instance refresh..."
+          aws autoscaling start-instance-refresh \
+            --auto-scaling-group-name $ASG_NAME \
+            --preferences '{"InstanceWarmup": 60, "MinHealthyPercentage": 50}' \
+            --region $AWS_REGION || echo "Instance refresh already in progress or failed"
+
+      - name: Deployment summary
+        run: |
+          echo "## 🎉 Deployment Successful!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Application Details" >> $GITHUB_STEP_SUMMARY
+          echo "- **URL**: ${{ steps.verify.outputs.app-url }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Docker Image**: ${{ steps.build-image.outputs.image }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build SHA**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deployed at**: $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Quick Links" >> $GITHUB_STEP_SUMMARY
+          echo "- [🌐 Open Application](${{ steps.verify.outputs.app-url }})" >> $GITHUB_STEP_SUMMARY
+          echo "- [💾 Health Check](${{ steps.verify.outputs.app-url }}/api/health)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "*Deployment completed via Watchtower auto-update*"

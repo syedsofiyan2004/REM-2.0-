@@ -1,0 +1,75 @@
+name: Check Application Status
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 */4 * * *'  # Every 4 hours
+
+env:
+  AWS_REGION: ap-south-1
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Get application status
+        run: |
+          echo "## 🔍 Application Status Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Get ALB DNS
+          ALB_DNS=$(aws elbv2 describe-load-balancers \
+            --names rem-alb \
+            --query 'LoadBalancers[0].DNSName' \
+            --output text)
+          
+          echo "### Infrastructure Status" >> $GITHUB_STEP_SUMMARY
+          echo "- **Load Balancer**: $ALB_DNS" >> $GITHUB_STEP_SUMMARY
+          
+          # Check ALB targets
+          TARGET_GROUP_ARN=$(aws elbv2 describe-target-groups \
+            --names rem-tg \
+            --query 'TargetGroups[0].TargetGroupArn' \
+            --output text)
+          
+          HEALTHY_TARGETS=$(aws elbv2 describe-target-health \
+            --target-group-arn $TARGET_GROUP_ARN \
+            --query 'length(TargetHealthDescriptions[?TargetHealth.State==`healthy`])' \
+            --output text)
+          
+          TOTAL_TARGETS=$(aws elbv2 describe-target-health \
+            --target-group-arn $TARGET_GROUP_ARN \
+            --query 'length(TargetHealthDescriptions)' \
+            --output text)
+          
+          echo "- **Healthy Instances**: $HEALTHY_TARGETS/$TOTAL_TARGETS" >> $GITHUB_STEP_SUMMARY
+          
+          # Test application endpoints
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Application Health" >> $GITHUB_STEP_SUMMARY
+          
+          if curl -f -s "http://$ALB_DNS/api/health" > /dev/null; then
+            echo "- **Health Endpoint**: ✅ Healthy" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **Health Endpoint**: ❌ Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if curl -f -s "http://$ALB_DNS" > /dev/null; then
+            echo "- **Main Application**: ✅ Accessible" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **Main Application**: ❌ Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Quick Links" >> $GITHUB_STEP_SUMMARY
+          echo "- [🌐 Open Application](http://$ALB_DNS)" >> $GITHUB_STEP_SUMMARY
+          echo "- [💾 Health Check](http://$ALB_DNS/api/health)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "*Report generated at: $(date -u)*"
