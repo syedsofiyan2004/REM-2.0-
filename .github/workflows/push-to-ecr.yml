@@ -47,6 +47,10 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
           
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:latest" >> $GITHUB_OUTPUT
+          
+          # Verify the image was pushed with correct build info
+          echo "🔍 Verifying image build info..."
+          docker run --rm $ECR_REGISTRY/$ECR_REPOSITORY:latest printenv APP_BUILD || echo "Could not verify build info"
           echo "image-sha=$ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}" >> $GITHUB_OUTPUT
 
       - name: Wait for Watchtower to update containers
@@ -54,30 +58,46 @@ jobs:
           echo "🚀 New image pushed to ECR!"
           echo "📦 Image: ${{ steps.build-image.outputs.image }}"
           echo "⏱️  Watchtower will detect and update running containers within ~60 seconds"
-          echo "🔄 Waiting 120 seconds for deployment to complete..."
-          sleep 120
+          echo "🔄 Waiting for deployment to complete..."
           
-          # Additional verification - check if image was updated
-          echo "🔍 Verifying deployment..."
-          # Try to detect if the new build is active
           ALB_DNS=$(aws elbv2 describe-load-balancers \
             --names rem-alb \
             --query 'LoadBalancers[0].DNSName' \
             --output text \
             --region $AWS_REGION)
           
-          # Check if the version endpoint shows the new build
-          VERSION_RESPONSE=$(curl -s "http://$ALB_DNS/api/version" || echo "{}")
-          echo "📋 Current version info: $VERSION_RESPONSE"
-          
-          # Check if deployment is current
-          CURRENT_BUILD=$(echo "$VERSION_RESPONSE" | jq -r '.build // "unknown"')
           EXPECTED_BUILD="${{ github.sha }}"
+          echo "🎯 Expected build: $EXPECTED_BUILD"
           
-          if [ "$CURRENT_BUILD" = "$EXPECTED_BUILD" ]; then
-            echo "✅ Deployment verified - build matches!"
-          else
-            echo "⚠️  Build mismatch. Expected: $EXPECTED_BUILD, Current: $CURRENT_BUILD"
+          # Retry deployment verification up to 5 times with increasing delays
+          DEPLOYMENT_VERIFIED=false
+          for attempt in {1..5}; do
+            echo "📋 Verification attempt $attempt/5..."
+            
+            if [ $attempt -gt 1 ]; then
+              sleep_time=$((30 * attempt))  # 60s, 90s, 120s, 150s
+              echo "⏳ Waiting ${sleep_time}s before retry..."
+              sleep $sleep_time
+            else
+              sleep 90  # Initial wait
+            fi
+            
+            VERSION_RESPONSE=$(curl -s "http://$ALB_DNS/api/version" || echo "{}")
+            CURRENT_BUILD=$(echo "$VERSION_RESPONSE" | jq -r '.build // "unknown"')
+            
+            echo "📋 Current build: $CURRENT_BUILD"
+            
+            if [ "$CURRENT_BUILD" = "$EXPECTED_BUILD" ]; then
+              echo "✅ Deployment verified - build matches!"
+              DEPLOYMENT_VERIFIED=true
+              break
+            else
+              echo "⚠️  Build mismatch on attempt $attempt"
+            fi
+          done
+          
+          if [ "$DEPLOYMENT_VERIFIED" = "false" ]; then
+            echo "❌ Deployment verification failed after 5 attempts"
             echo "DEPLOYMENT_MISMATCH=true" >> $GITHUB_ENV
           fi
 
@@ -122,11 +142,75 @@ jobs:
       - name: Force refresh instances
         if: steps.check-refresh.outputs.needs_refresh == 'true'
         run: |
-          echo "🔄 ${{ steps.check-refresh.outputs.reason }}, forcing instance refresh..."
-          aws autoscaling start-instance-refresh \
+          echo "🔄 ${{ steps.check-refresh.outputs.reason }}, managing instance refresh..."
+          
+          # Check if instance refresh is already running
+          EXISTING_REFRESH=$(aws autoscaling describe-instance-refreshes \
+            --auto-scaling-group-name $ASG_NAME \
+            --query 'InstanceRefreshes[?Status==`InProgress`] | [0].InstanceRefreshId' \
+            --output text \
+            --region $AWS_REGION)
+          
+          if [ "$EXISTING_REFRESH" != "None" ] && [ "$EXISTING_REFRESH" != "" ]; then
+            echo "⏳ Instance refresh already in progress: $EXISTING_REFRESH"
+            echo "🔄 Waiting for existing refresh to complete..."
+            
+            # Wait for existing refresh to complete (max 10 minutes)
+            for i in {1..20}; do
+              sleep 30
+              STATUS=$(aws autoscaling describe-instance-refreshes \
+                --auto-scaling-group-name $ASG_NAME \
+                --instance-refresh-ids $EXISTING_REFRESH \
+                --query 'InstanceRefreshes[0].Status' \
+                --output text \
+                --region $AWS_REGION)
+              
+              echo "📊 Refresh status: $STATUS"
+              
+              if [ "$STATUS" != "InProgress" ]; then
+                echo "✅ Previous refresh completed with status: $STATUS"
+                break
+              fi
+              
+              if [ $i -eq 20 ]; then
+                echo "⚠️  Timeout waiting for existing refresh"
+              fi
+            done
+          fi
+          
+          # Start new instance refresh
+          echo "🚀 Starting new instance refresh..."
+          NEW_REFRESH=$(aws autoscaling start-instance-refresh \
             --auto-scaling-group-name $ASG_NAME \
             --preferences '{"InstanceWarmup": 60, "MinHealthyPercentage": 50}' \
-            --region $AWS_REGION || echo "Instance refresh already in progress or failed"
+            --query 'InstanceRefreshId' \
+            --output text \
+            --region $AWS_REGION 2>/dev/null || echo "FAILED")
+          
+          if [ "$NEW_REFRESH" != "FAILED" ]; then
+            echo "✅ Started instance refresh: $NEW_REFRESH"
+            
+            # Wait for refresh to show progress
+            echo "⏳ Monitoring refresh progress..."
+            for i in {1..10}; do
+              sleep 30
+              PROGRESS=$(aws autoscaling describe-instance-refreshes \
+                --auto-scaling-group-name $ASG_NAME \
+                --instance-refresh-ids $NEW_REFRESH \
+                --query 'InstanceRefreshes[0].PercentageComplete' \
+                --output text \
+                --region $AWS_REGION 2>/dev/null || echo "0")
+              
+              echo "📈 Refresh progress: ${PROGRESS}%"
+              
+              if [ "$PROGRESS" -eq 100 ]; then
+                echo "🎉 Instance refresh completed successfully!"
+                break
+              fi
+            done
+          else
+            echo "❌ Failed to start instance refresh"
+          fi
 
       - name: Deployment summary
         run: |
