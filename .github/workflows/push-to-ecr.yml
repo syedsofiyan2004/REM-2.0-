@@ -126,23 +126,25 @@ jobs:
           echo "app-url=http://$ALB_DNS" >> $GITHUB_OUTPUT
         id: verify
 
-      - name: Check if refresh needed
-        id: check-refresh
+      - name: Check if Watchtower update failed
+        id: check-watchtower
         run: |
-          if [ "$DEPLOYMENT_MISMATCH" = "true" ]; then
-            echo "needs_refresh=true" >> $GITHUB_OUTPUT
-            echo "reason=Build version mismatch detected" >> $GITHUB_OUTPUT
-          elif [ "${{ job.status }}" = "failure" ]; then
-            echo "needs_refresh=true" >> $GITHUB_OUTPUT
-            echo "reason=Health check failed" >> $GITHUB_OUTPUT
+          if [ "$DEPLOYMENT_VERIFIED" = "false" ]; then
+            echo "🔍 Watchtower failed to update containers after 5 attempts"
+            echo "🚨 This usually means:"
+            echo "   1. Watchtower container is not running"
+            echo "   2. Docker socket permissions issue"  
+            echo "   3. ECR authentication expired"
+            echo "needs_manual_intervention=true" >> $GITHUB_OUTPUT
+            echo "WATCHTOWER_FAILED=true" >> $GITHUB_ENV
           else
-            echo "needs_refresh=false" >> $GITHUB_OUTPUT
+            echo "needs_manual_intervention=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Force refresh instances
-        if: steps.check-refresh.outputs.needs_refresh == 'true'
+      - name: Manual intervention needed
+        if: steps.check-watchtower.outputs.needs_manual_intervention == 'true'
         run: |
-          echo "🔄 ${{ steps.check-refresh.outputs.reason }}, managing instance refresh..."
+          echo "� Watchtower deployment failed - manual intervention required"
           
           # Check if instance refresh is already running
           EXISTING_REFRESH=$(aws autoscaling describe-instance-refreshes \
