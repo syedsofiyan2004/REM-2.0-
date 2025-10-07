@@ -26,12 +26,6 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Show repository tree (debug)
-        run: |
-          pwd
-          ls -la
-          echo "Dockerfile present?" && test -f Dockerfile && echo yes || (echo no && exit 1)
-
       - name: Extract metadata (tags, labels)
         id: meta
         uses: docker/metadata-action@v5
