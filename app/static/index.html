@@ -209,9 +209,11 @@ try{
 }catch{}
 
 function add(text, who){
+  // Clean the text for display (remove stage directions and name prefixes)
+  const cleanText = who === 'bot' ? sanitizeCaption(text) : text;
   const d = Object.assign(document.createElement('div'), {
     className: 'bubble ' + who,
-    textContent: text
+    textContent: cleanText
   });
   elements.log.appendChild(d);
   d.scrollIntoView({behavior:'smooth', block:'end'});
@@ -697,16 +699,26 @@ function speakWithBrowser(sentence){
   });
 }
 
-// Strip labels (e.g., "Title:", "Chorus -") and stage cues like [smiles] from captions/TTs
+// Strip labels, stage cues, and formatting artifacts from TTS text
 function sanitizeCaption(input){
   let s = String(input||'');
-  // Remove square-bracket stage directions entirely
+  
+  // Remove name prefixes like "Rem:", "Assistant:", etc.
+  s = s.replace(/^\s*(?:rem|assistant|ai|bot|system)\s*:\s*/i, '');
+  
+  // Remove asterisk-based stage directions like *smiles*, *waves*
+  s = s.replace(/\*[^*]*\*/g, ' ');
+  
+  // Remove square-bracket stage directions like [smiles]
   s = s.replace(/\[[^\]]*\]/g, ' ');
+  
   // Remove short parenthetical cues like (smiles), (laughs), (beat)
   s = s.replace(/\(([^)]{1,24})\)/g, (m, inner)=> (/^[a-zA-Z\s]+$/.test(inner) ? ' ' : m));
+  
   // Remove leading labels like Title:, Summary:, Chorus -, Verse —, etc.
   s = s.replace(/^\s*(?:title|subtitle|summary|note|action|directions?|stage|heading|scene|lyrics|chorus|verse|bridge|intro|outro)\s*:\s*/i, '');
   s = s.replace(/^\s*(?:title|subtitle|summary|note|action|directions?|stage|heading|scene|lyrics|chorus|verse|bridge|intro|outro)\s*[-–—]\s*/i, '');
+  
   // Collapse whitespace and stray punctuation from removals
   s = s.replace(/\s{2,}/g, ' ').replace(/\s+([,.;:!?])/g, '$1').trim();
   return s;
