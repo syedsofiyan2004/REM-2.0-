@@ -13,29 +13,37 @@
 }
 </script>
 <style>
-  :root{ --fg:#f4f7ff; --glass:#0b1020cc; --line:#23314a; --green:#00d68f; --bg:#0b0e14; --pill:#13233c; --pillBorder:#2a3d59; }
+  :root{ --fg:#f4f7ff; --glass:#0b1020dd; --line:#23314a; --green:#00d68f; --bg:#0b0e14; --pill:#13233c; --pillBorder:#2a3d59; --accent:#6366f1; --accent-light:#8b5cf6; }
   *{box-sizing:border-box;font-family:Inter,system-ui,Segoe UI,Roboto,sans-serif}
   html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);overflow:hidden;-webkit-text-size-adjust:100%;-webkit-font-smoothing:antialiased}
-  #scene3d{position:fixed;inset:0;z-index:0;background:#0c0f18}
-  #panel{position:fixed;right:0;top:0;height:100%;width:min(420px,90vw);
-         display:flex;flex-direction:column;gap:12px;padding:16px;
-         background:linear-gradient(180deg,#0b1020e6,#0b1020e6);backdrop-filter:blur(12px);
-    border-left:1px solid #1e2a3f;z-index:2;
-    transform:translateX(100%); transition:transform .3s cubic-bezier(0.4, 0, 0.2, 1)}
+  #scene3d{position:fixed;inset:0;z-index:0;background:radial-gradient(ellipse at center, #0f1419 0%, #0b0e14 100%);transition:all 0.5s ease}
+  #scene3d.listening{background:radial-gradient(ellipse at center, #141a28 0%, #0b0e14 100%)}
+  #scene3d.speaking{background:radial-gradient(ellipse at center, #1a1428 0%, #0b0e14 100%)}
+  #panel{position:fixed;right:0;top:0;height:100%;width:min(380px,85vw);
+         display:flex;flex-direction:column;gap:16px;padding:20px;
+         background:linear-gradient(180deg,rgba(11,16,32,0.95),rgba(11,16,32,0.98));backdrop-filter:blur(20px);
+    border-left:1px solid #2a3d59;z-index:2;box-shadow:-10px 0 30px rgba(0,0,0,0.3);
+    transform:translateX(100%); transition:all .4s cubic-bezier(0.23, 1, 0.32, 1)}
   #panel.open{ transform:translateX(0) }
   #log{flex:1;min-height:0;overflow:auto;padding-right:6px;scroll-behavior:smooth}
-  .bubble{padding:12px 16px;border-radius:12px;margin:8px 0;border:1px solid #1e2a3f;line-height:1.5;word-wrap:break-word}
-  .user{background:#0f223f}
-  .bot{background:#121a2a}
+  .bubble{padding:14px 18px;border-radius:16px;margin:10px 0;border:1px solid #1e2a3f;line-height:1.6;word-wrap:break-word;transition:all 0.2s ease;position:relative}
+  .bubble:hover{border-color:#3d4f73;transform:translateY(-1px)}
+  .user{background:linear-gradient(135deg,#1a2851,#0f223f);border-left:3px solid var(--accent)}
+  .bot{background:linear-gradient(135deg,#1a2433,#121a2a);animation:fadeInUp 0.3s ease-out}
   .row{display:flex;gap:8px;flex-wrap:wrap}
-  input,button,select{font:16px/1.35 inherit;padding:12px 14px;border-radius:12px;border:1px solid #1e2a3f;background:#101827;color:var(--fg);touch-action:manipulation}
-  input{flex:1;min-width:0} button{cursor:pointer;font-weight:600}
-  button:hover{filter:brightness(1.06)} button:disabled{opacity:.55;cursor:not-allowed}
-  #voicebar{position:fixed;left:8px;bottom:calc(env(safe-area-inset-bottom, 0px) + 8px);z-index:2;display:flex;align-items:center;gap:6px;
-            background:var(--glass);border:1px solid #1e2a3f;padding:6px 8px;border-radius:12px;flex-wrap:wrap;
-            max-width:calc(100vw - 16px)}
-  .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:20px;background:var(--pill);border:1px solid var(--pillBorder);font-size:13px;color:#eaf2ff;min-height:32px}
-  .pill:focus-visible{outline:2px solid var(--green)}
+  input,button,select{font:16px/1.35 inherit;padding:14px 16px;border-radius:12px;border:1px solid #1e2a3f;background:#101827;color:var(--fg);touch-action:manipulation;transition:all 0.2s ease}
+  input{flex:1;min-width:0;} input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(99,102,241,0.1);outline:none}
+  button{cursor:pointer;font-weight:600;position:relative;overflow:hidden}
+  button:hover{filter:brightness(1.1);transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,0.15)} 
+  button:active{transform:translateY(0)}
+  button:disabled{opacity:.55;cursor:not-allowed;transform:none}
+  #voicebar{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom, 0px) + 20px);z-index:2;display:flex;align-items:center;gap:8px;
+            background:rgba(16,24,39,0.95);border:1px solid #2a3d59;padding:8px 16px;border-radius:20px;flex-wrap:wrap;
+            max-width:calc(100vw - 32px);transform:translateX(-50%);backdrop-filter:blur(20px);box-shadow:0 8px 32px rgba(0,0,0,0.3)}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:24px;background:var(--pill);border:1px solid var(--pillBorder);font-size:13px;color:#eaf2ff;min-height:36px;transition:all 0.2s ease;cursor:pointer}
+  .pill:hover{background:#1a2a47;border-color:#3d4f73;transform:translateY(-1px)}
+  .pill:focus-visible{outline:2px solid var(--accent);box-shadow:0 0 0 4px rgba(99,102,241,0.1)}
+  .pill:active{transform:translateY(0)}
   select.pill{appearance:none;background:var(--pill);color:#eaf2ff}
   .dot{width:8px;height:8px;border-radius:50%;background:#78859a}.dot.on{background:var(--green);box-shadow:0 0 8px var(--green)}
   #badge{position:fixed;top:12px;left:12px;z-index:2;padding:6px 10px;border-radius:10px;border:1px solid #1e2a3f;background:var(--glass);font-weight:700;letter-spacing:.3px;font-size:14px}
@@ -56,17 +64,25 @@
   body.high-contrast .bubble { border-color:#35507a }
   body.high-contrast .user { background:#0d2a52 }
   body.high-contrast .bot  { background:#0f1930 }
+  
+  @keyframes fadeInUp { from {opacity:0;transform:translateY(20px)} to {opacity:1;transform:translateY(0)} }
+  @keyframes pulse { 0%,100% {opacity:1} 50% {opacity:0.7} }
+  @keyframes breathe { 0%,100% {transform:scale(1)} 50% {transform:scale(1.02)} }
+  
+  .breathing { animation: breathe 4s ease-in-out infinite }
+  .listening { animation: pulse 1.5s ease-in-out infinite }
+  .typing { animation: fadeInUp 0.3s ease-out }
   @media (max-width: 768px){
-    #panel{width:100vw; padding:12px; border-left:none; border-top:1px solid #1e2a3f}
-    #badge{font-size:12px; padding:4px 8px; top:auto; bottom:calc(env(safe-area-inset-bottom, 0px) + 70px)}
-    #subtitle{bottom:30%; font-size:14px; padding:6px 10px}
-    #voicebar{left:4px; right:4px; max-width:none; padding:4px 6px; gap:4px; flex-wrap:wrap}
-    .pill{font-size:12px; padding:4px 8px; min-height:28px}
-    input,button,select{font-size:16px; padding:10px 12px; min-height:44px}
-    .bubble{padding:10px 14px; margin:6px 0; font-size:15px}
-    #hambtn{min-height:36px; min-width:36px; padding:6px 8px}
+    #panel{width:100vw; padding:16px; border-left:none; border-top:1px solid #2a3d59; gap:12px}
+    #badge{font-size:12px; padding:4px 8px; top:auto; bottom:calc(env(safe-area-inset-bottom, 0px) + 100px)}
+    #subtitle{bottom:35%; font-size:14px; padding:8px 12px}
+    #voicebar{left:50%; bottom:calc(env(safe-area-inset-bottom, 0px) + 16px); padding:6px 12px; gap:6px}
+    .pill{font-size:12px; padding:6px 10px; min-height:32px}
+    input,button,select{font-size:16px; padding:12px 14px; min-height:48px}
+    .bubble{padding:12px 16px; margin:8px 0; font-size:15px}
+    #hambtn{min-height:40px; min-width:40px; padding:8px 10px; backdrop-filter:blur(20px)}
     #zoombar{display:none}
-    .row{gap:6px}
+    .row{gap:8px}
     #disclaimer{font-size:11px; padding:4px 8px}
   }
   @media (max-width: 480px){
@@ -87,48 +103,55 @@
   <div id="disclaimer">Preview build: This experience is under active development and may be imperfect.</div>
 
   <aside id="panel">
-    <div style="font-weight:700;letter-spacing:.4px">Chat</div>
-    <div id="current-mode" style="font-size:12px;color:#78859a;margin-bottom:8px;">Mode: Default</div>
+    <div style="font-weight:700;letter-spacing:.4px;font-size:18px;margin-bottom:8px">💬 Chat with Rem</div>
+    <div id="current-mode" style="font-size:12px;color:#78859a;margin-bottom:16px;padding:4px 8px;background:rgba(99,102,241,0.1);border-radius:8px;border:1px solid rgba(99,102,241,0.2);">Mode: Default</div>
+    
     <div id="log"></div>
-    <div class="row">
-      <input id="inp" placeholder="Say something…" />
-      <button id="send">Send</button>
+    
+    <div class="row" style="margin-top:16px">
+      <input id="inp" placeholder="Type your message…" />
+      <button id="send" style="background:var(--accent);border-color:var(--accent)">Send</button>
     </div>
-    <div style="font-weight:700;letter-spacing:.4px;margin-top:6px">Sing</div>
-    <div class="row">
-      <input id="singinp" placeholder="Type lyrics for singing (not chat)…" />
-      <button id="singGo">Sing</button>
+    
+    <!-- Simplified personality modes -->
+    <div style="font-weight:600;letter-spacing:.3px;margin:20px 0 8px 0;font-size:14px">🎭 Personality</div>
+    <div class="row" style="flex-wrap:wrap;gap:8px;margin-bottom:16px">
+      <button class="pill style" data-style="witty" title="Humorous and playful">✨ Witty</button>
+      <button class="pill style" data-style="empathetic" title="Caring and supportive">💞 Caring</button>
+      <button class="pill style" data-style="precise" title="Direct and focused">🧠 Precise</button>
+      <button class="pill" id="resetStyle" title="Default friendly mode">🔄 Default</button>
     </div>
-    <div class="row" style="flex-wrap:wrap;gap:8px;margin-top:6px">
-  <button class="pill" data-say="Tell me a short story about kindness.">💡 Story</button>
-  <button class="pill" data-say="Guide me through a 30-second breathing exercise.">🧘 Breathe</button>
-  <button class="pill" data-say="Teach me a fun fact about space.">🛰️ Space</button>
-  <button class="pill" data-say="Help me plan a quick healthy snack.">🥗 Snack</button>
-  <!-- Conversation styles -->
-  <button class="pill style" data-style="witty" title="Add humor and playful responses">✨ Witty</button>
-  <button class="pill style" data-style="empathetic" title="Supportive and understanding">💞 Caring</button>
-  <button class="pill style" data-style="precise" title="Direct and concise answers">🧠 Precise</button>
-  <button class="pill style" data-style="spicy" title="Playful and flirtatious (but respectful)">🌶️ Playful</button>
-  <button class="pill" id="resetStyle" title="Return to default mode">🔄 Default</button>
-  <button class="pill" id="cardBtn" title="Quick knowledge card">🃏 Card</button>
+    
+    <!-- Quick actions -->
+    <div style="font-weight:600;letter-spacing:.3px;margin:20px 0 8px 0;font-size:14px">⚡ Quick Actions</div>
+    <div class="row" style="flex-wrap:wrap;gap:8px;margin-bottom:16px">
+      <button class="pill" data-say="Tell me an inspiring story">� Story</button>
+      <button class="pill" data-say="Help me relax with a breathing exercise">� Relax</button>
+      <button class="pill" data-say="Share a fascinating fact">� Learn</button>
+    </div>
+    
+    <!-- Singing section (simplified) -->
+    <div style="font-weight:600;letter-spacing:.3px;margin:20px 0 8px 0;font-size:14px">🎵 Voice & Music</div>
+    <div class="row">
+      <input id="singinp" placeholder="What should I sing about?" />
+      <button id="singGo" style="background:var(--accent-light);border-color:var(--accent-light)">Sing</button>
     </div>
   </aside>
 
   <div id="voicebar">
-    <button id="mic">🎙️ Start Voice</button>
-    <button id="stop" disabled>⏹️ Stop</button>
-  <button id="pttbtn" class="pill" title="Hold Space to talk when enabled">PTT</button>
-  <button id="sing">🎵 Sing</button>
-    <select id="langsel" class="pill" title="TTS language">
-      <option value="auto" selected>Auto (detect)</option>
-      <option value="en">English (Ruth)</option>
-      <option value="es">Español (España)</option>
-      <option value="es-mx">Español (México)</option>
-      <option value="fr">Français (France)</option>
-      <option value="fr-ca">Français (Canada)</option>
-      <option value="hi">हिंदी (India)</option>
+    <button id="mic" class="pill" style="background:var(--accent);border-color:var(--accent)">🎙️ Talk</button>
+    <button id="stop" class="pill" disabled style="background:#dc2626;border-color:#dc2626">■ Stop</button>
+    <span class="pill" style="background:rgba(0,0,0,0.3);border-color:rgba(255,255,255,0.1)">
+      <span id="micdot" class="dot"></span>
+      <span id="miclabel" style="font-weight:500">Ready</span>
+    </span>
+    <select id="langsel" class="pill" title="Voice language" style="min-width:80px">
+      <option value="auto" selected>Auto</option>
+      <option value="en">English</option>
+      <option value="es">Español</option>
+      <option value="fr">Français</option>
+      <option value="hi">हिंदी</option>
     </select>
-    <span class="pill"><span id="micdot" class="dot"></span><span id="miclabel">Idle</span></span>
   </div>
 
   <!-- Zoom controls -->
@@ -202,10 +225,35 @@ let smile=0, blink=0, nextBlinkT=0, lastT=0, prevSmileLevel=0;
 let entrance = { active: true, startT: 0, fromZ: 0, toZ: 0 };
 let exprPulse = { smile: 0, winkL: 0, winkR: 0 };
 let gaze = { x: 0, y: 0, t: 0 };
+let breathingState = { phase: 0, intensity: 0.3 };
+let interactionState = { isListening: false, isSpeaking: false, isThinking: false };
+let emotionalState = { happiness: 0.1, engagement: 0.5, energy: 0.7 };
 
 function setJawEnergy(level){ jawEnergy = Math.max(0, Math.min(1, level)); }
 function setSmile(level){ smile = Math.max(0, Math.min(1, level)); }
 function setBlink(level){ blink = Math.max(0, Math.min(1, level)); }
+
+// Enhanced avatar state controls (Grok AI style)
+function setListening(isListening){ 
+  interactionState.isListening = isListening;
+  elements.scene3d.classList.toggle('listening', isListening);
+  if(isListening) emotionalState.engagement = Math.min(1, emotionalState.engagement + 0.2);
+}
+function setSpeaking(isSpeaking){ 
+  interactionState.isSpeaking = isSpeaking;
+  elements.scene3d.classList.toggle('speaking', isSpeaking);
+  if(isSpeaking) emotionalState.energy = Math.min(1, emotionalState.energy + 0.1);
+}
+function setHappiness(level){ emotionalState.happiness = Math.max(0, Math.min(1, level)); }
+function setEngagement(level){ emotionalState.engagement = Math.max(0, Math.min(1, level)); }
+function triggerExpression(type, intensity = 1.0){
+  switch(type){
+    case 'smile': exprPulse.smile = intensity; setHappiness(emotionalState.happiness + 0.1); break;
+    case 'wink': exprPulse.winkL = intensity; break;
+    case 'surprise': setEngagement(1.0); breathingState.intensity = 0.5; break;
+    case 'thinking': interactionState.isThinking = true; setTimeout(() => interactionState.isThinking = false, 2000); break;
+  }
+}
 
 function frameObject(obj){
   const box = new THREE.Box3().setFromObject(obj);
@@ -311,19 +359,38 @@ async function init3D(url){
 
   function loop(){
     const t = clock.getElapsedTime();
-    // More visible idle motion
-    const yaw = Math.sin(t*0.5) * 0.10;   // ~±6°
-    const bob = Math.sin(t*0.9) * 0.045;  // a bit more bob
+    const dt = clock.getDelta();
+    
+    // Enhanced breathing animation (like Grok AI)
+    breathingState.phase += dt * (0.8 + emotionalState.energy * 0.4);
+    const breathCycle = Math.sin(breathingState.phase) * breathingState.intensity;
+    
+    // Dynamic idle motion based on emotional state
+    const baseYaw = Math.sin(t*0.4) * (0.08 + emotionalState.engagement * 0.04);
+    const baseBob = Math.sin(t*0.7) * (0.03 + emotionalState.energy * 0.02);
+    const breathBob = breathCycle * 0.015;
+    
+    // Listening micro-movements
+    const listenSway = interactionState.isListening ? Math.sin(t*1.2) * 0.02 : 0;
+    const speakBounce = interactionState.isSpeaking ? Math.sin(t*2.5) * 0.03 : 0;
+    
     if (root){
-      // Entrance easing (quad out)
+      // Entrance easing (improved with bounce)
       if (entrance.active){
         const dt = t - entrance.startT;
-        const dur = 2.2; const p = Math.min(1, dt/dur); const e = 1 - (1-p)*(1-p);
+        const dur = 2.8; const p = Math.min(1, dt/dur); 
+        const bounce = 1 + Math.sin(p * Math.PI) * 0.1;
+        const e = 1 - Math.pow(1-p, 3) * bounce;
         root.position.z = entrance.fromZ + (entrance.toZ - entrance.fromZ)*e;
         if (p >= 1) entrance.active = false;
       }
-      root.rotation.y = yaw;
-      root.position.y = bob * (entrance.active ? 1.8 : 1.0);
+      
+      // Apply combined movements
+      root.rotation.y = baseYaw + listenSway;
+      root.position.y = (baseBob + breathBob + speakBounce) * (entrance.active ? 1.5 : 1.0);
+      
+      // Slight forward lean when engaged
+      root.rotation.x = THREE.MathUtils.lerp(root.rotation.x, emotionalState.engagement * 0.05, 0.1);
     }
 
     // Head motion: slight idle nod + speech-driven component
@@ -339,11 +406,13 @@ async function init3D(url){
       jawBone.rotation.x = THREE.MathUtils.lerp(jawBone.rotation.x, jawEnergy * maxOpen, 0.2);
     }
 
-  // Smile: stronger and includes short-lived pulses
-    const idleSmile = 0.10 + Math.max(0, Math.sin(t*0.5))*0.07;
-    const speakSmile = jawEnergy * 0.35;
-    exprPulse.smile = Math.max(0, exprPulse.smile - 0.02);
-    const sLevel = THREE.MathUtils.clamp(idleSmile + speakSmile + exprPulse.smile*0.6 + smile*0.2, 0, 0.8);
+  // Enhanced smile with emotional state influence
+    const baseSmile = emotionalState.happiness * 0.15;
+    const idleSmile = baseSmile + Math.max(0, Math.sin(t*0.6))*0.05;
+    const speakSmile = jawEnergy * 0.4;
+    const engagementSmile = emotionalState.engagement * 0.1;
+    exprPulse.smile = Math.max(0, exprPulse.smile - 0.025);
+    const sLevel = THREE.MathUtils.clamp(idleSmile + speakSmile + engagementSmile + exprPulse.smile*0.7 + smile*0.3, 0, 0.85);
   let appliedSmile = false;
   for (const s of smileTargets){ s.mesh.morphTargetInfluences[s.idx] = THREE.MathUtils.lerp(s.mesh.morphTargetInfluences[s.idx]||0, sLevel, 0.1); appliedSmile = true; }
   // If no smile morphs exist, emulate expression subtly by head tilt
@@ -539,7 +608,7 @@ let curStreamCtrl = null;
 let autoResumeMic = false;
 let suppressASRUntil = 0;
 function stopSpeaking(){
-  speaking=false;
+  speaking=false; setSpeaking(false);
   try{ if(currentAudio){ currentAudio.pause(); currentAudio.src=''; } }catch{}
   if(raf) cancelAnimationFrame(raf); currentAudio=null;
   setJawEnergy(0);
@@ -558,9 +627,9 @@ function visemeToOpen(v){ return (VMAP[v] ?? 0.35); }
 
 async function playAudioWithVisemes(b64, marks){
   return new Promise(async (resolve, reject)=>{
-    stopSpeaking(); speaking=true;
-  // Keep mic active; just suppress ASR results while speaking
-  suppressASRUntil = Number.POSITIVE_INFINITY;
+    stopSpeaking(); speaking=true; setSpeaking(true);
+    // Keep mic active; just suppress ASR results while speaking
+    suppressASRUntil = Number.POSITIVE_INFINITY;
     const audio = new Audio('data:audio/mp3;base64,'+b64); currentAudio=audio;
 
     let cleaned=false;
@@ -751,7 +820,15 @@ async function talk(text){
   }
 }
 
-elements.send.onclick = ()=>{ const t = elements.inp.value.trim(); if(t){ talk(t); elements.inp.value=''; } };
+elements.send.onclick = ()=>{ 
+  const t = elements.inp.value.trim(); 
+  if(t){ 
+    triggerExpression('thinking');
+    setEngagement(0.8);
+    talk(t); 
+    elements.inp.value=''; 
+  } 
+};
 elements.inp.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); elements.send.click(); } });
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -786,7 +863,10 @@ function startMic(){
   const r = new SpeechRecognition();
   recog = r; r.lang = resolveAsrLang(); r.interimResults=true; r.continuous=true;
   let buffer=''; let lastFinalAt=0; const DEBOUNCE_MS=250;
-  r.onstart = ()=>{ elements.mic.disabled=true; elements.stop.disabled=false; setListening(true); try{ beep(820,120); }catch{} };
+  r.onstart = ()=>{ elements.mic.disabled=true; elements.stop.disabled=false; setListening(true); 
+    elements.miclabel.textContent = 'Listening'; elements.micdot.classList.add('on');
+    document.body.classList.add('breathing'); triggerExpression('surprise', 0.5);
+    try{ beep(820,120); }catch{} };
   r.onresult = (ev)=>{
     // Ignore any recognition results for a brief window after TTS ends
   // Don't interrupt active TTS mid-utterance
@@ -802,7 +882,10 @@ function startMic(){
       const cleaned = buffer.trim(); if(cleaned){ talk(cleaned); buffer=''; }
     }
   };
-  r.onend = ()=>{ elements.mic.disabled=false; elements.stop.disabled=true; setListening(false); try{ beep(480,120); }catch{}; recog = null; };
+  r.onend = ()=>{ elements.mic.disabled=false; elements.stop.disabled=true; setListening(false); 
+    elements.miclabel.textContent = 'Ready'; elements.micdot.classList.remove('on');
+    document.body.classList.remove('breathing'); 
+    try{ beep(480,120); }catch{}; recog = null; };
   r.onerror = e=> console.warn(e);
   try{ r.start(); }catch(e){ console.warn('recog.start failed', e); }
 }
@@ -865,7 +948,12 @@ elements.singGo?.addEventListener('click', ()=>{ doSingFromInput(); });
 // Suggestions chips
 for (const b of suggestionButtons()){
   b.addEventListener('click', ()=>{
-    const v = b.getAttribute('data-say')||''; if(v){ talk(v); }
+    const v = b.getAttribute('data-say')||''; 
+    if(v){ 
+      triggerExpression('smile', 0.8);
+      setEngagement(0.9);
+      talk(v); 
+    }
   });
 }
 // Quick knowledge card button
