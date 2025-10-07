@@ -1,10 +1,29 @@
 .env
-venv
-__pycache__
-infra
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+.coverage
+.pytest_cache/
+.vscode/
+.idea/
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+
+# Terraform
+infra/.terraform/
+infra/terraform.tfstate
+infra/terraform.tfstate.backup
+infra/*.tfvars
+!infra/terraform.tfvars.example
+
+# Docker
+.dockerignore
+
+# Deployment docs (if you don't want to commit)
 README_DEPLOY.md
-# allow committing .dockerignore so Docker builds use it
-# (remove the next line if present)
-# .dockerignore
-terraform.tfstate
-terraform.tfstate.backup
