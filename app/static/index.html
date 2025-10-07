@@ -276,17 +276,37 @@ function faceCameraIfBackwards(){
 }
 
 async function init3D(url){
+  console.log('🎮 init3D called with URL:', url);
+  
+  if (!elements.scene3d) {
+    throw new Error('scene3d element not found');
+  }
+  
   const w = elements.scene3d.clientWidth, h = elements.scene3d.clientHeight;
+  console.log('📐 Scene dimensions:', w, 'x', h);
+  
+  if (w === 0 || h === 0) {
+    throw new Error('Scene element has no dimensions');
+  }
+  
+  console.log('🎨 Creating WebGL renderer...');
   renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true, powerPreference:'high-performance' });
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio||1));
   renderer.setSize(w, h);
+  
   try{
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.1;
     renderer.physicallyCorrectLights = true;
-  }catch{}
-  elements.scene3d.innerHTML=''; elements.scene3d.appendChild(renderer.domElement);
+    console.log('✅ Renderer settings applied');
+  }catch(rendererError){
+    console.warn('⚠️ Some renderer settings failed:', rendererError);
+  }
+  
+  elements.scene3d.innerHTML=''; 
+  elements.scene3d.appendChild(renderer.domElement);
+  console.log('🖼️ Renderer canvas added to DOM');
 
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(24, w/h, 0.1, 100);
@@ -482,40 +502,66 @@ async function init3D(url){
   threeReady = true;
 }
 function schedule3D(){
-  const start = ()=>
-    init3D(RPM_AVATAR_URL)
+  console.log('🎬 Scheduling 3D initialization...');
+  const start = ()=> {
+    console.log('🚀 Starting 3D load with URL:', RPM_AVATAR_URL);
+    return init3D(RPM_AVATAR_URL)
+      .then(() => {
+        console.log('✅ 3D load successful!');
+        threeReady = true;
+      })
       .catch(async (err)=>{
-        console.warn("Remote 3D load failed, trying local fallback:", err);
+        console.warn("❌ Primary 3D load failed:", err);
+        console.log("🔄 Trying fallback path...");
         try{
           await init3D('/static/models/blessedboy.glb');
+          console.log('✅ Fallback 3D load successful!');
+          threeReady = true;
         }catch(e2){
-          console.error("Local 3D fallback failed:", e2);
+          console.error("💥 Fallback 3D load also failed:", e2);
           const overlay = elements.scene3d.querySelector('div');
-          if(overlay) overlay.textContent = '3D failed to load. Check network or local assets.';
+          if(overlay) overlay.textContent = '3D failed to load. Error: ' + e2.message;
         }
       })
-      .finally(()=>elements.scene3d.style.pointerEvents = "auto");
+      .finally(()=>{
+        console.log('🎭 Re-enabling pointer events on scene3d');
+        elements.scene3d.style.pointerEvents = "auto";
+      });
+  };
   (window.requestIdleCallback || ((f)=>setTimeout(f,250)))(start);
 }
 elements.scene3d.style.pointerEvents = "none";
 
+// Debug 3D loading
+console.log('🎯 Starting 3D initialization...');
+console.log('Elements:', elements);
+console.log('Scene3D element:', elements.scene3d);
+
 try{
   const test = document.createElement('canvas').getContext('webgl') || document.createElement('canvas').getContext('experimental-webgl');
+  console.log('WebGL test:', test ? 'SUPPORTED' : 'NOT SUPPORTED');
+  
   if(!test){
     const overlay = elements.scene3d.querySelector('div');
     if(overlay) overlay.textContent = 'WebGL not supported. Try a newer browser or update graphics drivers.';
   }else{
+    console.log('📱 WebGL supported, starting 3D loading...');
     schedule3D();
     setTimeout(()=>{
+      console.log('⏰ 8-second timeout check. ThreeReady:', threeReady);
       if(!threeReady){
         const overlay = elements.scene3d.querySelector('div');
-        if(overlay) overlay.textContent = 'Still loading 3D… Check /static/vendor and /static/models files.';
+        if(overlay) {
+          overlay.textContent = 'Still loading 3D… Check browser console for errors.';
+          console.error('❌ 3D failed to load within 8 seconds');
+        }
       }
     }, 8000);
   }
-}catch{
+}catch(error){
+  console.error('💥 3D initialization error:', error);
   const overlay = elements.scene3d.querySelector('div');
-  if(overlay) overlay.textContent = '3D init error. See console for details.';
+  if(overlay) overlay.textContent = '3D init error. Check console for details: ' + error.message;
 }
 
 let curTtsCtrl = null;
