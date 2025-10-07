@@ -909,7 +909,7 @@ function beep(freq=880, ms=120){
     o.start(); o.stop(localCtx.currentTime+ms/1000);
   }catch{}
 }
-function setListening(on){
+function setMicListening(on){
   listening = !!on;
   elements.micdot.classList.toggle('on', on);
   elements.miclabel.textContent = on ? 'Listening…' : 'Idle';
@@ -921,7 +921,7 @@ function startMic(){
   const r = new SpeechRecognition();
   recog = r; r.lang = resolveAsrLang(); r.interimResults=true; r.continuous=true;
   let buffer=''; let lastFinalAt=0; const DEBOUNCE_MS=250;
-  r.onstart = ()=>{ elements.mic.disabled=true; elements.stop.disabled=false; setListening(true); 
+  r.onstart = ()=>{ elements.mic.disabled=true; elements.stop.disabled=false; setMicListening(true); 
     elements.miclabel.textContent = 'Listening'; elements.micdot.classList.add('on');
     document.body.classList.add('breathing'); triggerExpression('surprise', 0.5);
     try{ beep(820,120); }catch{} };
@@ -940,7 +940,7 @@ function startMic(){
       const cleaned = buffer.trim(); if(cleaned){ talk(cleaned); buffer=''; }
     }
   };
-  r.onend = ()=>{ elements.mic.disabled=false; elements.stop.disabled=true; setListening(false); 
+  r.onend = ()=>{ elements.mic.disabled=false; elements.stop.disabled=true; setMicListening(false); 
     elements.miclabel.textContent = 'Ready'; elements.micdot.classList.remove('on');
     document.body.classList.remove('breathing'); 
     try{ beep(480,120); }catch{}; recog = null; };
