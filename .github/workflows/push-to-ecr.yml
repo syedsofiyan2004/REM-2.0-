@@ -54,8 +54,32 @@ jobs:
           echo "🚀 New image pushed to ECR!"
           echo "📦 Image: ${{ steps.build-image.outputs.image }}"
           echo "⏱️  Watchtower will detect and update running containers within ~60 seconds"
-          echo "🔄 Waiting 90 seconds for deployment to complete..."
-          sleep 90
+          echo "🔄 Waiting 120 seconds for deployment to complete..."
+          sleep 120
+          
+          # Additional verification - check if image was updated
+          echo "🔍 Verifying deployment..."
+          # Try to detect if the new build is active
+          ALB_DNS=$(aws elbv2 describe-load-balancers \
+            --names rem-alb \
+            --query 'LoadBalancers[0].DNSName' \
+            --output text \
+            --region $AWS_REGION)
+          
+          # Check if the version endpoint shows the new build
+          VERSION_RESPONSE=$(curl -s "http://$ALB_DNS/api/version" || echo "{}")
+          echo "📋 Current version info: $VERSION_RESPONSE"
+          
+          # Check if deployment is current
+          CURRENT_BUILD=$(echo "$VERSION_RESPONSE" | jq -r '.build // "unknown"')
+          EXPECTED_BUILD="${{ github.sha }}"
+          
+          if [ "$CURRENT_BUILD" = "$EXPECTED_BUILD" ]; then
+            echo "✅ Deployment verified - build matches!"
+          else
+            echo "⚠️  Build mismatch. Expected: $EXPECTED_BUILD, Current: $CURRENT_BUILD"
+            echo "DEPLOYMENT_MISMATCH=true" >> $GITHUB_ENV
+          fi
 
       - name: Verify deployment
         run: |
@@ -82,10 +106,23 @@ jobs:
           echo "app-url=http://$ALB_DNS" >> $GITHUB_OUTPUT
         id: verify
 
-      - name: Force refresh instances (if needed)
-        if: failure()
+      - name: Check if refresh needed
+        id: check-refresh
         run: |
-          echo "🔄 Health check failed, forcing instance refresh..."
+          if [ "$DEPLOYMENT_MISMATCH" = "true" ]; then
+            echo "needs_refresh=true" >> $GITHUB_OUTPUT
+            echo "reason=Build version mismatch detected" >> $GITHUB_OUTPUT
+          elif [ "${{ job.status }}" = "failure" ]; then
+            echo "needs_refresh=true" >> $GITHUB_OUTPUT
+            echo "reason=Health check failed" >> $GITHUB_OUTPUT
+          else
+            echo "needs_refresh=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Force refresh instances
+        if: steps.check-refresh.outputs.needs_refresh == 'true'
+        run: |
+          echo "🔄 ${{ steps.check-refresh.outputs.reason }}, forcing instance refresh..."
           aws autoscaling start-instance-refresh \
             --auto-scaling-group-name $ASG_NAME \
             --preferences '{"InstanceWarmup": 60, "MinHealthyPercentage": 50}' \
