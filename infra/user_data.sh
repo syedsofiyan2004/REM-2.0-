@@ -41,7 +41,7 @@ aws ecr get-login-password --region "${aws_region}" | docker login --username AW
 /usr/bin/docker run -d --name watchtower --restart unless-stopped \
   -v /var/run/docker.sock:/var/run/docker.sock \
   containrrr/watchtower \
-  --interval 120 \
+  --interval 30 \
   --cleanup \
   --include-stopped --revive-stopped \
   --stop-timeout 30s \

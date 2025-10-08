@@ -1,9 +1,16 @@
-﻿name: Lightning Fast Direct Deploy
+﻿name: Deploy to AWS - Fast Watchtower (30s intervals)
 
 on:
   push:
-    branches:
-      - main
+    br      - name: Deployment summary
+        run: |
+          EC2_IP=$(aws ec2 describe-addresses --region $AWS_REGION --query 'Addresses[?Tags[?Key==`Name` && Value==`rem-eip`]].PublicIp' --output text)
+          echo "## 🚀 Fast Watchtower Deployed!" >> $GITHUB_STEP_SUMMARY
+          echo "- 🌐 **Application URL**: http://$EC2_IP:8000" >> $GITHUB_STEP_SUMMARY
+          echo "- ⚡ **Auto-updates**: Every 30 seconds" >> $GITHUB_STEP_SUMMARY
+          echo "- 📦 **Image**: ${{ steps.build-image.outputs.image }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 🎯 **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **Working & Simple**: No more complex SSM failures" >> $GITHUB_STEP_SUMMARY     - main
   workflow_dispatch:
 
 env:
@@ -40,55 +47,34 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:latest" >> $GITHUB_OUTPUT
 
-      - name: ⚡ INSTANT Deploy - Direct Container Update
+      - name: Wait for Fast Watchtower deployment
         run: |
-          echo "🚀 Lightning deployment started - NO MORE WAITING!"
+          echo "🚀 Fast Watchtower deployment started!"
+          echo "📦 Image pushed - Watchtower will update in ~30-60 seconds"
           
-          # Get the Elastic IP of the single EC2 instance
+          # Get the Elastic IP of the single EC2 instance  
           EC2_IP=$(aws ec2 describe-addresses --region $AWS_REGION --query 'Addresses[?Tags[?Key==`Name` && Value==`rem-eip`]].PublicIp' --output text)
           EXPECTED_BUILD="${{ github.sha }}"
-          echo "IP: $EC2_IP"
           
-          # Get the key file from instance metadata  
-          INSTANCE_ID=$(aws ec2 describe-instances --region $AWS_REGION \
-            --filters "Name=tag:Name,Values=rem-app" "Name=instance-state-name,Values=running" \
-            --query 'Reservations[0].Instances[0].InstanceId' --output text)
+          echo "🌐 Monitoring deployment at: http://$EC2_IP:8000"
+          echo "� Waiting for build: $EXPECTED_BUILD"
           
-          # Direct SSH deployment - INSTANT UPDATE!
-          echo "🔥 Forcing immediate container update via SSH..."
-          
-          # Get ECR registry URL dynamically
-          ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}
-          
-          # Ultra-reliable deployment with all required environment variables
-          COMMAND_ID=$(aws ssm send-command \
-            --region $AWS_REGION \
-            --instance-ids $INSTANCE_ID \
-            --document-name "AWS-RunShellScript" \
-            --parameters "commands=echo 'Starting lightning deployment...'; sudo docker stop rem-app || true; sudo docker rm rem-app || true; aws ecr get-login-password --region ap-south-1 | sudo docker login --username AWS --password-stdin $ECR_REGISTRY; sudo docker pull $ECR_REGISTRY/rem-app:latest; sudo docker run -d --name rem-app --restart unless-stopped -p 80:8000 -p 8000:8000 -e IMAGE_TAG=latest -e BEDROCK_REGION=ap-south-1 -e BEDROCK_MODEL=anthropic.claude-3-haiku-20240307-v1:0 -e POLLY_REGION=ap-south-1 -e POLLY_VOICE=Ruth -e BEDROCK_MAX_RETRIES=3 -e CHAT_MAX_CONCURRENCY=4 -e TTS_MAX_CONCURRENCY=3 -e TTS_CACHE_TTL=900 -e UVICORN_WORKERS=2 $ECR_REGISTRY/rem-app:latest; sleep 5; sudo docker ps | grep rem-app && echo 'DEPLOYMENT SUCCESS' || echo 'DEPLOYMENT FAILED'" \
-            --query 'Command.CommandId' \
-            --output text)
-          
-          echo "🚀 Command ID: $COMMAND_ID"
-          
-          # Robust verification with retries
-          echo "⏱️ Verifying deployment..."
-          sleep 15
-          
-          # Try multiple times with increasing wait
-          for attempt in {1..4}; do
-            echo "🔍 Verification attempt $attempt/4..."
-            if curl -s --connect-timeout 10 "http://$EC2_IP:8000/api/version" | grep -q "build"; then
-              echo "✅ LIGHTNING DEPLOYMENT SUCCESS!"
-              curl -s "http://$EC2_IP:8000/api/version" | jq .
+          for attempt in {1..6}; do
+            echo "⏱️ Check $attempt/6..."
+            sleep 30
+            
+            VERSION_RESPONSE=$(curl -s --connect-timeout 10 "http://$EC2_IP:8000/api/version" || echo "{}")
+            CURRENT_BUILD=$(echo "$VERSION_RESPONSE" | jq -r '.build // "unknown"')
+            
+            if [ "$CURRENT_BUILD" = "$EXPECTED_BUILD" ]; then
+              echo "✅ Fast Watchtower deployment successful!"
+              echo "� Application live at: http://$EC2_IP:8000"
               break
-            else
-              if [ $attempt -lt 4 ]; then
-                echo "⏳ Container still starting, waiting 10 seconds..."
-                sleep 10
-              else
-                echo "⚠️ Container may need more time to start. Check manually at http://$EC2_IP:8000"
-              fi
+            fi
+            echo "📊 Current: $CURRENT_BUILD, waiting..."
+            
+            if [ $attempt -eq 6 ]; then
+              echo "⚠️ Deployment verification timeout (may still be deploying)"
             fi
           done
 
