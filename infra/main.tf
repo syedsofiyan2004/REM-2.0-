@@ -163,9 +163,31 @@ resource "aws_iam_role_policy" "rem_policy" {
           "logs:PutLogEvents"
         ]
         Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "ssm:UpdateInstanceInformation",
+          "ssm:SendCommand",
+          "ssm:ListCommands",
+          "ssm:ListCommandInvocations",
+          "ssm:DescribeInstanceInformation",
+          "ssm:GetCommandInvocation",
+          "ssm:DescribeCommands",
+          "ssm:ListTagsForResource",
+          "ssm:DescribeParameters",
+          "ssm:GetParameters",
+          "ssm:GetParameter"
+        ]
+        Resource = "*"
       }
     ]
   })
+}
+
+resource "aws_iam_role_policy_attachment" "ssm_managed_instance" {
+  role       = aws_iam_role.ec2_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
 resource "aws_iam_instance_profile" "ec2_profile" {
