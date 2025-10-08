@@ -96,7 +96,17 @@
 </style>
 </head>
 <body>
-  <div id="scene3d"><div style="position:absolute;inset:0;display:grid;place-items:center;color:#9fb3d1">Loading 3D…</div></div>
+  <div id="scene3d">
+    <div id="loading-overlay" style="position:absolute;inset:0;display:grid;place-items:center;color:#9fb3d1;background:rgba(11,14,20,0.8);backdrop-filter:blur(4px);z-index:1;transition:opacity 0.5s ease">
+      <div style="text-align:center">
+        <div style="margin-bottom:16px;font-size:18px">Loading 3D Avatar…</div>
+        <div style="width:40px;height:40px;border:3px solid #334155;border-top-color:#6366f1;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto"></div>
+      </div>
+    </div>
+  </div>
+  <style>
+    @keyframes spin { to { transform: rotate(360deg) } }
+  </style>
   <div id="badge">Rem</div>
   <button id="hambtn">☰</button>
   <div id="subtitle" aria-live="polite"></div>
@@ -209,14 +219,23 @@ try{
 }catch{}
 
 function add(text, who){
-  // Clean the text for display (remove stage directions and name prefixes)
-  const cleanText = who === 'bot' ? sanitizeCaption(text) : text;
-  const d = Object.assign(document.createElement('div'), {
-    className: 'bubble ' + who,
-    textContent: cleanText
-  });
-  elements.log.appendChild(d);
-  d.scrollIntoView({behavior:'smooth', block:'end'});
+  try {
+    // Clean the text for display (remove stage directions and name prefixes)
+    const cleanText = who === 'bot' ? sanitizeCaption(text) : text;
+    const d = Object.assign(document.createElement('div'), {
+      className: 'bubble ' + who,
+      textContent: cleanText
+    });
+    
+    if (elements.log) {
+      elements.log.appendChild(d);
+      d.scrollIntoView({behavior:'smooth', block:'end'});
+    } else {
+      console.error('❌ Chat log element not found!');
+    }
+  } catch (error) {
+    console.error('❌ Error adding chat message:', error);
+  }
 }
 
 let renderer, scene, camera, controls, clock;
@@ -509,6 +528,12 @@ function schedule3D(){
       .then(() => {
         console.log('✅ 3D load successful!');
         threeReady = true;
+        // Hide loading overlay
+        const loadingOverlay = document.getElementById('loading-overlay');
+        if (loadingOverlay) {
+          loadingOverlay.style.opacity = '0';
+          setTimeout(() => loadingOverlay.remove(), 500);
+        }
       })
       .catch(async (err)=>{
         console.warn("❌ Primary 3D load failed:", err);
@@ -517,6 +542,12 @@ function schedule3D(){
           await init3D('/static/models/blessedboy.glb');
           console.log('✅ Fallback 3D load successful!');
           threeReady = true;
+          // Hide loading overlay
+          const loadingOverlay = document.getElementById('loading-overlay');
+          if (loadingOverlay) {
+            loadingOverlay.style.opacity = '0';
+            setTimeout(() => loadingOverlay.remove(), 500);
+          }
         }catch(e2){
           console.error("💥 Fallback 3D load also failed:", e2);
           const overlay = elements.scene3d.querySelector('div');
@@ -1003,17 +1034,6 @@ elements.sing.onclick = async ()=>{
 };
 elements.singGo?.addEventListener('click', ()=>{ doSingFromInput(); });
 
-// Suggestions chips
-for (const b of suggestionButtons()){
-  b.addEventListener('click', ()=>{
-    const v = b.getAttribute('data-say')||''; 
-    if(v){ 
-      triggerExpression('smile', 0.8);
-      setEngagement(0.9);
-      talk(v); 
-    }
-  });
-}
 // Quick knowledge card button
 document.getElementById('cardBtn')?.addEventListener('click', async ()=>{
   const topic = (inp.value.trim() || 'a surprising science fact');
@@ -1027,62 +1047,6 @@ document.getElementById('cardBtn')?.addEventListener('click', async ()=>{
     showSubtitle('Here’s a quick card'); enqueueSpeak(d.reply||'Here is a quick card.');
   }catch(e){ console.warn(e); }
 });
-// Removed bottom bar card and spicy duplicates
-// Style chips (Grok-like persona modes)
-for (const b of styleButtons()){
-  b.addEventListener('click', ()=>{
-    const chosen = b.getAttribute('data-style') || null;
-    const wasSelected = selectedStyle === chosen;
-    
-    // Toggle off if clicking the same style again
-    selectedStyle = wasSelected ? null : chosen;
-    
-    // Visual toggle
-    styleButtons().forEach(x=> x.style.outline = '');
-    if(selectedStyle){ 
-      b.style.outline = '2px solid var(--green)'; 
-      b.style.boxShadow = '0 0 8px rgba(0, 214, 143, 0.3)';
-    }
-    
-    // Update mode display
-    const modeDisplay = document.getElementById('current-mode');
-    const modeText = selectedStyle ? `${selectedStyle.charAt(0).toUpperCase() + selectedStyle.slice(1)}` : 'Default';
-    if(modeDisplay) modeDisplay.textContent = `Mode: ${modeText}`;
-    
-    // Clear feedback
-    showSubtitle(`💬 ${selectedStyle ? `${selectedStyle} mode active` : 'default mode'}`, 2000);
-    
-    // Store preference
-    try{ localStorage.setItem('selected-style', selectedStyle || ''); }catch{}
-  });
-}
-
-// Restore saved style preference
-try{
-  const savedStyle = localStorage.getItem('selected-style');
-  if(savedStyle && savedStyle !== ''){
-    selectedStyle = savedStyle;
-    const btn = document.querySelector(`[data-style="${savedStyle}"]`);
-    if(btn){ 
-      btn.style.outline = '2px solid var(--green)';
-      btn.style.boxShadow = '0 0 8px rgba(0, 214, 143, 0.3)';
-    }
-    // Update mode display
-    const modeDisplay = document.getElementById('current-mode');
-    if(modeDisplay) modeDisplay.textContent = `Mode: ${savedStyle.charAt(0).toUpperCase() + savedStyle.slice(1)}`;
-  }
-}catch{}
-
-// Reset style button
-document.getElementById('resetStyle')?.addEventListener('click', ()=>{
-  selectedStyle = null;
-  styleButtons().forEach(x=> { x.style.outline = ''; x.style.boxShadow = ''; });
-  const modeDisplay = document.getElementById('current-mode');
-  if(modeDisplay) modeDisplay.textContent = 'Mode: Default';
-  showSubtitle('💬 default mode', 1500);
-  try{ localStorage.setItem('selected-style', ''); }catch{}
-});
-
 function dolly(f){
   try{
     if(controls && typeof controls.dollyIn === 'function'){
@@ -1100,6 +1064,126 @@ function dolly(f){
 elements.zoomIn?.addEventListener('click', ()=> dolly(1.2));
 elements.zoomOut?.addEventListener('click', ()=> dolly(1/1.2));
 elements.zoomReset?.addEventListener('click', ()=>{ try{ controls.reset(); }catch{}; try{ if(root) frameObject(root); }catch{} });
+
+// Initialize all UI functionality
+function initializeUI() {
+  console.log('🎯 Initializing UI functionality...');
+  
+  // Verify essential elements
+  const requiredElements = ['hambtn', 'panel', 'log', 'inp', 'send'];
+  const missingElements = requiredElements.filter(id => !document.getElementById(id));
+  if (missingElements.length > 0) {
+    console.error('❌ Missing essential elements:', missingElements);
+  }
+  
+  // Make sure hamburger menu works
+  try {
+    const hambtn = document.getElementById('hambtn');
+    const panel = document.getElementById('panel');
+    if (hambtn && panel) {
+      hambtn.addEventListener('click', () => {
+        panel.classList.toggle('open');
+        console.log('🍔 Hamburger menu toggled, panel open:', panel.classList.contains('open'));
+      });
+      console.log('✅ Hamburger menu initialized');
+    } else {
+      console.error('❌ Hamburger menu elements not found:', { hambtn: !!hambtn, panel: !!panel });
+    }
+  } catch (error) {
+    console.error('❌ Error setting up hamburger menu:', error);
+  }
+  
+  // Style buttons (personality modes)
+  try {
+    for (const b of styleButtons()) {
+      console.log('🎭 Setting up style button:', b.textContent);
+      b.addEventListener('click', () => {
+        const chosen = b.getAttribute('data-style') || null;
+        const wasSelected = selectedStyle === chosen;
+        
+        // Toggle off if clicking the same style again
+        selectedStyle = wasSelected ? null : chosen;
+        
+        // Visual toggle
+        styleButtons().forEach(x => { x.style.outline = ''; x.style.boxShadow = ''; });
+        if (selectedStyle) { 
+          b.style.outline = '2px solid var(--green)'; 
+          b.style.boxShadow = '0 0 8px rgba(0, 214, 143, 0.3)';
+        }
+        
+        // Update mode display
+        const modeDisplay = document.getElementById('current-mode');
+        const modeText = selectedStyle ? `${selectedStyle.charAt(0).toUpperCase() + selectedStyle.slice(1)}` : 'Default';
+        if (modeDisplay) modeDisplay.textContent = `Mode: ${modeText}`;
+        
+        // Clear feedback
+        showSubtitle(`💬 ${selectedStyle ? `${selectedStyle} mode active` : 'default mode'}`, 2000);
+        
+        // Store preference
+        try { localStorage.setItem('selected-style', selectedStyle || ''); } catch {}
+        
+        console.log('🎭 Style changed to:', selectedStyle || 'default');
+      });
+    }
+    
+    // Restore saved style preference
+    try {
+      const savedStyle = localStorage.getItem('selected-style');
+      if (savedStyle && savedStyle !== '') {
+        selectedStyle = savedStyle;
+        const btn = document.querySelector(`[data-style="${savedStyle}"]`);
+        if (btn) { 
+          btn.style.outline = '2px solid var(--green)';
+          btn.style.boxShadow = '0 0 8px rgba(0, 214, 143, 0.3)';
+        }
+        const modeDisplay = document.getElementById('current-mode');
+        if (modeDisplay) modeDisplay.textContent = `Mode: ${savedStyle.charAt(0).toUpperCase() + savedStyle.slice(1)}`;
+        console.log('🎭 Restored style:', savedStyle);
+      }
+    } catch {}
+    
+    // Reset style button
+    document.getElementById('resetStyle')?.addEventListener('click', () => {
+      selectedStyle = null;
+      styleButtons().forEach(x => { x.style.outline = ''; x.style.boxShadow = ''; });
+      const modeDisplay = document.getElementById('current-mode');
+      if (modeDisplay) modeDisplay.textContent = 'Mode: Default';
+      showSubtitle('💬 default mode', 1500);
+      try { localStorage.setItem('selected-style', ''); } catch {}
+      console.log('🎭 Style reset to default');
+    });
+  } catch (error) {
+    console.error('❌ Error setting up style buttons:', error);
+  }
+  
+  // Quick action buttons (data-say)
+  try {
+    for (const b of suggestionButtons()) {
+      console.log('⚡ Setting up quick action button:', b.textContent);
+      b.addEventListener('click', () => {
+        const v = b.getAttribute('data-say') || ''; 
+        if (v) { 
+          triggerExpression('smile', 0.8);
+          setEngagement(0.9);
+          talk(v);
+          console.log('⚡ Quick action triggered:', v);
+        }
+      });
+    }
+  } catch (error) {
+    console.error('❌ Error setting up quick action buttons:', error);
+  }
+  
+  console.log('✅ UI initialization complete');
+}
+
+// Initialize everything when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeUI);
+} else {
+  initializeUI();
+}
+
 ['pointerdown','keydown'].forEach(evt=>{
   window.addEventListener(evt, ()=>{
     try{ if(audioCtx && audioCtx.state!=='running'){ audioCtx.resume(); } }catch{}
