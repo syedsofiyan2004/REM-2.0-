@@ -46,29 +46,38 @@ jobs:
           echo " Image pushed with bulletproof configuration"
           echo "  Expected update time: 2-4 minutes"
           
-          ALB_DNS=$(aws elbv2 describe-load-balancers --names rem-alb --query 'LoadBalancers[0].DNSName' --output text --region $AWS_REGION)
+          # Get the Elastic IP of the single EC2 instance
+          EC2_IP=$(aws ec2 describe-addresses --region $AWS_REGION --query 'Addresses[?Tags[?Key==`Name` && Value==`rem-eip`]].PublicIp' --output text)
           EXPECTED_BUILD="${{ github.sha }}"
           
-          echo " Monitoring for build: $EXPECTED_BUILD"
+          echo " Monitoring deployment at: http://$EC2_IP:8000"
+          echo " Waiting for build: $EXPECTED_BUILD"
           
-          for attempt in {1..6}; do
-            echo " Check $attempt/6..."
-            sleep $((60 + attempt * 30))
+          for attempt in {1..8}; do
+            echo " Check $attempt/8..."
+            sleep $((30 + attempt * 15))
             
-            VERSION_RESPONSE=$(curl -s "http://$ALB_DNS/api/version" || echo "{}")
+            VERSION_RESPONSE=$(curl -s --connect-timeout 10 "http://$EC2_IP:8000/api/version" || echo "{}")
             CURRENT_BUILD=$(echo "$VERSION_RESPONSE" | jq -r '.build // "unknown"')
             
             if [ "$CURRENT_BUILD" = "$EXPECTED_BUILD" ]; then
-              echo " Watchtower deployment successful!"
+              echo " ✅ Watchtower deployment successful!"
+              echo " 🚀 Application live at: http://$EC2_IP:8000"
               break
             fi
             echo " Current: $CURRENT_BUILD, waiting..."
+            
+            if [ $attempt -eq 8 ]; then
+              echo " ⚠️  Deployment verification timeout (may still be deploying)"
+            fi
           done
 
       - name: Deployment summary
         run: |
-          echo "##  Bulletproof Watchtower Deployed!" >> $GITHUB_STEP_SUMMARY
-          echo "-  Auto-updates: Every 60 seconds" >> $GITHUB_STEP_SUMMARY
-          echo "-  ECR auth refresh: Every 4 hours" >> $GITHUB_STEP_SUMMARY
-          echo "-  Health monitoring: Every 5 minutes" >> $GITHUB_STEP_SUMMARY
-          echo "-  Self-healing recovery systems" >> $GITHUB_STEP_SUMMARY
+          EC2_IP=$(aws ec2 describe-addresses --region $AWS_REGION --query 'Addresses[?Tags[?Key==`Name` && Value==`rem-eip`]].PublicIp' --output text)
+          echo "## 🚀 Simplified Watchtower Deployed!" >> $GITHUB_STEP_SUMMARY
+          echo "- 🌐 **Application URL**: http://$EC2_IP:8000" >> $GITHUB_STEP_SUMMARY
+          echo "- ⚡ **Auto-updates**: Every 2 minutes" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔐 **ECR auth refresh**: Every 6 hours" >> $GITHUB_STEP_SUMMARY
+          echo "- 📊 **Simple & Reliable**: Single EC2 + Elastic IP" >> $GITHUB_STEP_SUMMARY
+          echo "- 🎯 **Fixed UI**: Personality modes, quick actions, chat history" >> $GITHUB_STEP_SUMMARY
