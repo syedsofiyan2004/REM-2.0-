@@ -187,7 +187,7 @@ const elements = {
   send: document.getElementById('send'),
   mic: document.getElementById('mic'),
   stop: document.getElementById('stop'),
-  sing: document.getElementById('sing'),
+
   langsel: document.getElementById('langsel'),
   micdot: document.getElementById('micdot'),
   miclabel: document.getElementById('miclabel'),
@@ -1028,11 +1028,7 @@ async function doSingFromInput(){
     await playAudioWithVisemes(audio_b64, marks||[]);
   }catch(e){ console.warn(e); add('Singing failed. Please try again.','bot'); }
 }
-elements.sing.onclick = async ()=>{
-  elements.panel.classList.add('open');
-  elements.singinp?.focus();
-  if((elements.singinp?.value||'').trim()){ doSingFromInput(); }
-};
+// Sing button handler already handled by elements.singGo above
 elements.singGo?.addEventListener('click', ()=>{ doSingFromInput(); });
 
 // Quick knowledge card button
