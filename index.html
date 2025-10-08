@@ -826,7 +826,6 @@ let subTimer; function showSubtitle(text, ttl=4000){
   if(subTimer) clearTimeout(subTimer);
   subTimer = setTimeout(()=>elements.subtitle.classList.remove('show'), ttl);
 }
-elements.hambtn.onclick = ()=>{ elements.panel.classList.toggle('open'); };
 
 document.addEventListener('click', (ev)=>{
   if(!elements.panel.classList.contains('open')) return;
