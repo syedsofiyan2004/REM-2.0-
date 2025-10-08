@@ -27,3 +27,4 @@ infra/*.tfvars
 
 # Deployment docs (if you don't want to commit)
 README_DEPLOY.md
+.vercel
