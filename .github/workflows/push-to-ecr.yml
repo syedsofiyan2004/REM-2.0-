@@ -57,27 +57,40 @@ jobs:
           # Direct SSH deployment - INSTANT UPDATE!
           echo "🔥 Forcing immediate container update via SSH..."
           
-          # Ultra-simple deployment - single command
+          # Get ECR registry URL dynamically
+          ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}
+          
+          # Ultra-reliable deployment with all required environment variables
           COMMAND_ID=$(aws ssm send-command \
             --region $AWS_REGION \
             --instance-ids $INSTANCE_ID \
             --document-name "AWS-RunShellScript" \
-            --parameters "commands=sudo docker stop rem-app || true; sudo docker rm rem-app || true; aws ecr get-login-password --region ap-south-1 | sudo docker login --username AWS --password-stdin 891377038923.dkr.ecr.ap-south-1.amazonaws.com; sudo docker pull 891377038923.dkr.ecr.ap-south-1.amazonaws.com/rem-app:latest; sudo docker run -d --name rem-app -p 8000:8000 -e AWS_DEFAULT_REGION=ap-south-1 --restart unless-stopped 891377038923.dkr.ecr.ap-south-1.amazonaws.com/rem-app:latest; echo DEPLOYMENT COMPLETE" \
+            --parameters "commands=echo 'Starting lightning deployment...'; sudo docker stop rem-app || true; sudo docker rm rem-app || true; aws ecr get-login-password --region ap-south-1 | sudo docker login --username AWS --password-stdin $ECR_REGISTRY; sudo docker pull $ECR_REGISTRY/rem-app:latest; sudo docker run -d --name rem-app --restart unless-stopped -p 80:8000 -p 8000:8000 -e IMAGE_TAG=latest -e BEDROCK_REGION=ap-south-1 -e BEDROCK_MODEL=anthropic.claude-3-haiku-20240307-v1:0 -e POLLY_REGION=ap-south-1 -e POLLY_VOICE=Ruth -e BEDROCK_MAX_RETRIES=3 -e CHAT_MAX_CONCURRENCY=4 -e TTS_MAX_CONCURRENCY=3 -e TTS_CACHE_TTL=900 -e UVICORN_WORKERS=2 $ECR_REGISTRY/rem-app:latest; sleep 5; sudo docker ps | grep rem-app && echo 'DEPLOYMENT SUCCESS' || echo 'DEPLOYMENT FAILED'" \
             --query 'Command.CommandId' \
             --output text)
           
-          echo "Command ID: $COMMAND_ID"
+          echo "🚀 Command ID: $COMMAND_ID"
           
-          # Quick verification
-          echo "⏱️ Waiting for container restart..."
-          sleep 20
+          # Robust verification with retries
+          echo "⏱️ Verifying deployment..."
+          sleep 15
           
-          # Check if deployment succeeded
-          if curl -s --connect-timeout 10 "http://$EC2_IP:8000/api/version"; then
-            echo "✅ LIGHTNING DEPLOYMENT SUCCESS!"
-          else
-            echo "⚠️ Service may still be starting..."
-          fi
+          # Try multiple times with increasing wait
+          for attempt in {1..4}; do
+            echo "🔍 Verification attempt $attempt/4..."
+            if curl -s --connect-timeout 10 "http://$EC2_IP:8000/api/version" | grep -q "build"; then
+              echo "✅ LIGHTNING DEPLOYMENT SUCCESS!"
+              curl -s "http://$EC2_IP:8000/api/version" | jq .
+              break
+            else
+              if [ $attempt -lt 4 ]; then
+                echo "⏳ Container still starting, waiting 10 seconds..."
+                sleep 10
+              else
+                echo "⚠️ Container may need more time to start. Check manually at http://$EC2_IP:8000"
+              fi
+            fi
+          done
 
       - name: 🎉 Lightning Deployment Complete
         run: |
