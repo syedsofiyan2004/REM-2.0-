@@ -1,12 +1,22 @@
 {
-  "rewrites": [
+  "builds": [
     {
-      "source": "/api/(.*)",
-      "destination": "http://15.206.50.149:8000/api/$1"
+      "src": "api/index.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/static/(.*)",
+      "dest": "/app/static/$1"
     },
     {
-      "source": "/static/(.*)",
-      "destination": "http://15.206.50.149:8000/static/$1"
+      "src": "/api/(.*)",
+      "dest": "/api/index.py"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/app/static/index.html"
     }
   ]
 }
