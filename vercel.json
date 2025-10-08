@@ -1,1 +1,12 @@
-'{\"rewrites\":[{\"source\":\"/api/(.*)\",\"destination\":\"http://15.206.50.149:8000/api/$1\"},{\"source\":\"/static/(.*)\",\"destination\":\"http://15.206.50.149:8000/static/$1\"}]}' 
+{
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "http://15.206.50.149:8000/api/$1"
+    },
+    {
+      "source": "/static/(.*)",
+      "destination": "http://15.206.50.149:8000/static/$1"
+    }
+  ]
+}

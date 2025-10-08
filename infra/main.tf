@@ -218,12 +218,15 @@ resource "aws_instance" "rem" {
 }
 
 # --- Vercel Configuration ---
-resource "null_resource" "write_vercel_json" {
+resource "null_resource" "update_vercel_config" {
   triggers = {
     eip = aws_eip.rem.public_ip
   }
 
   provisioner "local-exec" {
-    command = "echo '{\"rewrites\":[{\"source\":\"/api/(.*)\",\"destination\":\"http://${aws_eip.rem.public_ip}:8000/api/$1\"},{\"source\":\"/static/(.*)\",\"destination\":\"http://${aws_eip.rem.public_ip}:8000/static/$1\"}]}' > ${path.module}/../vercel.json"
+    command     = "powershell -ExecutionPolicy Bypass -File ${path.module}/../update-vercel-config.ps1"
+    working_dir = path.module
   }
+
+  depends_on = [aws_eip_association.rem]
 }
