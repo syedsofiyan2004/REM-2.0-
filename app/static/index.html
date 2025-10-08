@@ -1092,7 +1092,9 @@ function initializeUI() {
   
   // Style buttons (personality modes)
   try {
-    for (const b of styleButtons()) {
+    const buttons = styleButtons();
+    console.log('🎭 Found style buttons:', buttons.length, buttons);
+    for (const b of buttons) {
       console.log('🎭 Setting up style button:', b.textContent);
       b.addEventListener('click', () => {
         const chosen = b.getAttribute('data-style') || null;
