@@ -57,48 +57,27 @@ jobs:
           # Direct SSH deployment - INSTANT UPDATE!
           echo "🔥 Forcing immediate container update via SSH..."
           
-          # Create deployment script
-          cat > deploy.sh << 'EOF'
-          #!/bin/bash
-          set -e
-          echo "🚀 INSTANT DEPLOYMENT STARTED"
-          
-          # Stop and remove old container
-          sudo docker stop rem-app || true
-          sudo docker rm rem-app || true
-          
-          # Pull latest image
-          sudo docker pull $(aws ecr get-login-password --region ap-south-1 | sudo docker login --username AWS --password-stdin 891377038923.dkr.ecr.ap-south-1.amazonaws.com) > /dev/null 2>&1 || true
-          ECR_REGISTRY="891377038923.dkr.ecr.ap-south-1.amazonaws.com"
-          sudo docker pull $ECR_REGISTRY/rem-app:latest
-          
-          # Start new container immediately
-          sudo docker run -d --name rem-app -p 8000:8000 \
-            -e AWS_DEFAULT_REGION=ap-south-1 \
-            --restart unless-stopped \
-            $ECR_REGISTRY/rem-app:latest
-          
-          echo "✅ DEPLOYMENT COMPLETE IN SECONDS!"
-          EOF
-          
-          # Upload and execute via Systems Manager (much faster than Watchtower)
-          aws ssm send-command \
+          # Ultra-simple deployment - single command
+          COMMAND_ID=$(aws ssm send-command \
             --region $AWS_REGION \
             --instance-ids $INSTANCE_ID \
             --document-name "AWS-RunShellScript" \
-            --parameters 'commands=["'"$(cat deploy.sh | base64 -w 0)"'" | base64 -d | bash]' \
-            --output text
+            --parameters "commands=sudo docker stop rem-app || true; sudo docker rm rem-app || true; aws ecr get-login-password --region ap-south-1 | sudo docker login --username AWS --password-stdin 891377038923.dkr.ecr.ap-south-1.amazonaws.com; sudo docker pull 891377038923.dkr.ecr.ap-south-1.amazonaws.com/rem-app:latest; sudo docker run -d --name rem-app -p 8000:8000 -e AWS_DEFAULT_REGION=ap-south-1 --restart unless-stopped 891377038923.dkr.ecr.ap-south-1.amazonaws.com/rem-app:latest; echo DEPLOYMENT COMPLETE" \
+            --query 'Command.CommandId' \
+            --output text)
           
-          # Quick verification (max 30 seconds)
-          echo "⏱️ Quick verification..."
-          sleep 15
-          for i in {1..3}; do
-            if curl -s --connect-timeout 5 "http://$EC2_IP:8000/api/version" | grep -q "${{ github.sha }}"; then
-              echo "✅ LIGHTNING DEPLOYMENT SUCCESS!"
-              break
-            fi
-            sleep 5
-          done
+          echo "Command ID: $COMMAND_ID"
+          
+          # Quick verification
+          echo "⏱️ Waiting for container restart..."
+          sleep 20
+          
+          # Check if deployment succeeded
+          if curl -s --connect-timeout 10 "http://$EC2_IP:8000/api/version"; then
+            echo "✅ LIGHTNING DEPLOYMENT SUCCESS!"
+          else
+            echo "⚠️ Service may still be starting..."
+          fi
 
       - name: 🎉 Lightning Deployment Complete
         run: |

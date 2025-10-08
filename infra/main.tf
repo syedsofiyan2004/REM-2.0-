@@ -245,10 +245,10 @@ resource "null_resource" "update_vercel_config" {
     eip = aws_eip.rem.public_ip
   }
 
-  provisioner "local-exec" {
-    command     = "powershell -ExecutionPolicy Bypass -File ${path.module}/../update-vercel-config.ps1"
-    working_dir = path.module
-  }
+  # provisioner "local-exec" {
+  #   command     = "powershell -ExecutionPolicy Bypass -File ${path.module}/../update-vercel-config.ps1"
+  #   working_dir = path.module
+  # }
 
-  depends_on = [aws_eip_association.rem]
+  depends_on = [aws_eip.rem]
 }
