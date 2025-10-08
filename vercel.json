@@ -1,18 +1,24 @@
 {
-  "builds": [
+  "rewrites": [
     {
-      "src": "api/index.py",
-      "use": "@vercel/python"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/index.py"
+      "source": "/api/(.*)",
+      "destination": "/api/index.py"
     },
     {
-      "src": "/(.*)",
-      "dest": "/public/index.html"
+      "source": "/static/(.*)",
+      "destination": "/public/$1"
+    },
+    {
+      "source": "/models/(.*)",
+      "destination": "/public/models/$1"
+    },
+    {
+      "source": "/vendor/(.*)",
+      "destination": "/public/vendor/$1"
+    },
+    {
+      "source": "/utils/(.*)",
+      "destination": "/public/utils/$1"
     }
   ]
 }
