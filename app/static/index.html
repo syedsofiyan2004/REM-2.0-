@@ -23,7 +23,8 @@
          display:flex;flex-direction:column;gap:16px;padding:20px;
          background:linear-gradient(180deg,rgba(11,16,32,0.95),rgba(11,16,32,0.98));backdrop-filter:blur(20px);
     border-left:1px solid #2a3d59;z-index:2;box-shadow:-10px 0 30px rgba(0,0,0,0.3);
-    transform:translateX(100%); transition:all .4s cubic-bezier(0.23, 1, 0.32, 1)}
+    transform:translateX(100%); transition:all .4s cubic-bezier(0.23, 1, 0.32, 1);
+    overflow-y:auto;}
   #panel.open{ transform:translateX(0) }
   #log{flex:1;min-height:0;overflow:auto;padding-right:6px;scroll-behavior:smooth}
   .bubble{padding:14px 18px;border-radius:16px;margin:10px 0;border:1px solid #1e2a3f;line-height:1.6;word-wrap:break-word;transition:all 0.2s ease;position:relative}
@@ -73,7 +74,7 @@
   .listening { animation: pulse 1.5s ease-in-out infinite }
   .typing { animation: fadeInUp 0.3s ease-out }
   @media (max-width: 768px){
-    #panel{width:100vw; padding:16px; border-left:none; border-top:1px solid #2a3d59; gap:12px}
+    #panel{width:100vw; padding:16px; border-left:none; border-top:1px solid #2a3d59; gap:12px; padding-bottom:calc(env(safe-area-inset-bottom, 0px) + 80px);}
     #badge{font-size:12px; padding:4px 8px; top:auto; bottom:calc(env(safe-area-inset-bottom, 0px) + 100px)}
     #subtitle{bottom:35%; font-size:14px; padding:8px 12px}
     #voicebar{left:50%; bottom:calc(env(safe-area-inset-bottom, 0px) + 16px); padding:6px 12px; gap:6px}
@@ -86,7 +87,7 @@
     #disclaimer{font-size:11px; padding:4px 8px}
   }
   @media (max-width: 480px){
-    #panel{padding:8px}
+    #panel{padding:8px; padding-bottom:calc(env(safe-area-inset-bottom, 0px) + 80px);}
     #voicebar{padding:2px 4px; gap:2px}
     .pill{font-size:11px; padding:3px 6px; min-height:24px}
     input,button,select{font-size:16px; padding:8px 10px; min-height:40px}
