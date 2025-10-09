@@ -13,21 +13,21 @@ class handler(BaseHTTPRequestHandler):
             # Test imports one by one
             import_results = {}
             
-            # Test basic imports
+            # Test basic imports from utils
             try:
-                from app.main import PERSONA_BLESSED_BOY
+                from app.utils import PERSONA_BLESSED_BOY
                 import_results['PERSONA_BLESSED_BOY'] = 'Success'
             except Exception as e:
                 import_results['PERSONA_BLESSED_BOY'] = f'Error: {str(e)}'
             
             try:
-                from app.main import bedrock_reply
+                from app.utils import bedrock_reply
                 import_results['bedrock_reply'] = 'Success'
             except Exception as e:
                 import_results['bedrock_reply'] = f'Error: {str(e)}'
             
             try:
-                from app.main import get_msgs
+                from app.utils import get_msgs
                 import_results['get_msgs'] = 'Success'
             except Exception as e:
                 import_results['get_msgs'] = f'Error: {str(e)}'

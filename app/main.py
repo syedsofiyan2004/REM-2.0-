@@ -4,10 +4,6 @@ from collections import defaultdict, deque
 from pathlib import Path
 from typing import Tuple, List, Dict, Optional
 
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 
 import boto3

@@ -10,7 +10,7 @@ class handler(BaseHTTPRequestHandler):
     def do_POST(self):
         try:
             # Import sing functions
-            from app.main import polly_sing_with_visemes
+            from app.utils import polly_sing_with_visemes
             from fastapi import HTTPException
             
             content_length = int(self.headers.get('Content-Length', 0))

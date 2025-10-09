@@ -10,8 +10,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 class handler(BaseHTTPRequestHandler):
     def do_POST(self):
         try:
-            # Import the full AI functionality
-            from app.main import bedrock_reply, _compose_system, PERSONA_BLESSED_BOY, enforce_identity, add_turn, get_msgs
+            # Import the simplified AI functionality
+            from app.utils import bedrock_reply, _compose_system, PERSONA_BLESSED_BOY, enforce_identity, add_turn, get_msgs
             
             content_length = int(self.headers.get('Content-Length', 0))
             post_data = self.rfile.read(content_length)

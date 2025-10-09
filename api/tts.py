@@ -10,7 +10,7 @@ class handler(BaseHTTPRequestHandler):
     def do_POST(self):
         try:
             # Import TTS functions
-            from app.main import polly_tts_with_visemes
+            from app.utils import polly_tts_with_visemes
             
             content_length = int(self.headers.get('Content-Length', 0))
             post_data = self.rfile.read(content_length)

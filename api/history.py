@@ -9,7 +9,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
-            from app.main import get_msgs
+            from app.utils import get_msgs
             
             # Parse query parameters for session_id
             from urllib.parse import urlparse, parse_qs
