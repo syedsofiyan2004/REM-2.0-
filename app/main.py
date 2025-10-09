@@ -16,7 +16,7 @@ from botocore.exceptions import ClientError
 
 # load persona
 try:
-    from .persona_prompts import PERSONA_BLESSED_BOY
+    from persona_prompts import PERSONA_BLESSED_BOY
 except Exception:
     from persona_prompts import PERSONA_BLESSED_BOY
 
