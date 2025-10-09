@@ -38,17 +38,46 @@ class handler(BaseHTTPRequestHandler):
             elif q in {"what's your name","whats your name","your name?","who are you"}:
                 reply = "Rem."
             else:
-                # Use full AI with personality styles and conversation history (optimized for speed)
-                try:
-                    reply = bedrock_reply(_compose_system(PERSONA_BLESSED_BOY, style), session_id, text, style)
-                except Exception as ai_error:
-                    # Quick fallback if AI is slow/failing
-                    if "hello" in q or "hi" in q:
+                # Use full AI with personality styles and conversation history (with timeout)
+                import threading
+                import time
+                
+                result = [None]
+                error = [None]
+                
+                def ai_call():
+                    try:
+                        result[0] = bedrock_reply(_compose_system(PERSONA_BLESSED_BOY, style), session_id, text, style)
+                    except Exception as e:
+                        error[0] = e
+                
+                # Start AI call in separate thread with 10 second timeout
+                thread = threading.Thread(target=ai_call)
+                thread.daemon = True
+                thread.start()
+                thread.join(timeout=10)
+                
+                if thread.is_alive():
+                    # AI call timed out
+                    if "hello" in q or "hi" in q or "hey" in q:
+                        reply = "Hello! I'm Rem. How can I help you today?"
+                    elif "how are you" in q:
+                        reply = "I'm doing great! Thanks for asking. What would you like to chat about?"
+                    elif "what" in q and ("doing" in q or "up" in q):
+                        reply = "Just here chatting with you! What's on your mind?"
+                    else:
+                        reply = "I'm here and ready to chat! Could you try asking that again?"
+                elif error[0]:
+                    # AI call failed
+                    if "hello" in q or "hi" in q or "hey" in q:
                         reply = "Hello! I'm Rem. How can I help you today?"
                     elif "how are you" in q:
                         reply = "I'm doing great! Thanks for asking. What would you like to chat about?"
                     else:
                         reply = "I'm here and ready to chat! Could you try asking that again?"
+                else:
+                    # AI call succeeded
+                    reply = result[0] or "I'm here and ready to help!"
             
             # Clean the response and maintain identity
             final_reply = enforce_identity(reply)

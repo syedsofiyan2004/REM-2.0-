@@ -1066,33 +1066,48 @@ elements.zoomReset?.addEventListener('click', ()=>{ try{ controls.reset(); }catc
 async function loadChatHistory() {
   try {
     console.log('📜 Loading chat history...');
-    const response = await fetch('/api/history');
+    console.log('🔍 Chat log element check:', !!elements.log);
+    
+    const response = await fetch('/api/history?session_id=local');
+    console.log('📡 History response status:', response.status);
+    
     if (response.ok) {
       const history = await response.json();
-      if (history && history.length > 0) {
+      console.log('📋 Raw history data:', history);
+      console.log('📊 History type:', typeof history, 'Length:', Array.isArray(history) ? history.length : 'not array');
+      
+      if (history && Array.isArray(history) && history.length > 0) {
         // Clear existing messages first
         if (elements.log) {
           elements.log.innerHTML = '';
+          console.log('🧹 Cleared existing messages');
         }
         
         // Add each message from history
-        history.forEach(msg => {
-          if (msg.role === 'user') {
+        let loaded = 0;
+        history.forEach((msg, index) => {
+          console.log(`📝 Processing message ${index}:`, msg);
+          if (msg.role === 'user' && msg.content) {
             add(msg.content, 'user');
-          } else if (msg.role === 'assistant') {
+            loaded++;
+          } else if (msg.role === 'assistant' && msg.content) {
             add(msg.content, 'bot');
+            loaded++;
+          } else {
+            console.log('⚠️ Skipped malformed message:', msg);
           }
         });
         
-        console.log(`✅ Loaded ${history.length} messages from chat history`);
+        console.log(`✅ Loaded ${loaded}/${history.length} messages from chat history`);
       } else {
-        console.log('📝 No previous chat history found');
+        console.log('📝 No previous chat history found or invalid format');
       }
     } else {
-      console.log('⚠️ Could not load chat history:', response.status);
+      const errorText = await response.text();
+      console.log('⚠️ Could not load chat history:', response.status, errorText);
     }
   } catch (error) {
-    console.log('⚠️ Error loading chat history:', error.message);
+    console.error('❌ Error loading chat history:', error);
   }
 }
 
