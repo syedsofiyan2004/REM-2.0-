@@ -1062,6 +1062,40 @@ elements.zoomOut?.addEventListener('click', ()=> dolly(1/1.2));
 elements.zoomReset?.addEventListener('click', ()=>{ try{ controls.reset(); }catch{}; try{ if(root) frameObject(root); }catch{} });
 
 // Initialize all UI functionality
+// Load and display chat history from server
+async function loadChatHistory() {
+  try {
+    console.log('📜 Loading chat history...');
+    const response = await fetch('/api/history');
+    if (response.ok) {
+      const history = await response.json();
+      if (history && history.length > 0) {
+        // Clear existing messages first
+        if (elements.log) {
+          elements.log.innerHTML = '';
+        }
+        
+        // Add each message from history
+        history.forEach(msg => {
+          if (msg.role === 'user') {
+            add(msg.content, 'user');
+          } else if (msg.role === 'assistant') {
+            add(msg.content, 'bot');
+          }
+        });
+        
+        console.log(`✅ Loaded ${history.length} messages from chat history`);
+      } else {
+        console.log('📝 No previous chat history found');
+      }
+    } else {
+      console.log('⚠️ Could not load chat history:', response.status);
+    }
+  } catch (error) {
+    console.log('⚠️ Error loading chat history:', error.message);
+  }
+}
+
 function initializeUI() {
   console.log('🎯 Initializing UI functionality...');
   
@@ -1168,6 +1202,9 @@ function initializeUI() {
   } catch (error) {
     console.error('❌ Error setting up quick action buttons:', error);
   }
+  
+  // Load chat history after UI is set up
+  loadChatHistory();
   
   console.log('✅ UI initialization complete');
 }

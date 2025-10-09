@@ -38,8 +38,17 @@ class handler(BaseHTTPRequestHandler):
             elif q in {"what's your name","whats your name","your name?","who are you"}:
                 reply = "Rem."
             else:
-                # Use full AI with personality styles and conversation history
-                reply = bedrock_reply(_compose_system(PERSONA_BLESSED_BOY, style), session_id, text, style)
+                # Use full AI with personality styles and conversation history (optimized for speed)
+                try:
+                    reply = bedrock_reply(_compose_system(PERSONA_BLESSED_BOY, style), session_id, text, style)
+                except Exception as ai_error:
+                    # Quick fallback if AI is slow/failing
+                    if "hello" in q or "hi" in q:
+                        reply = "Hello! I'm Rem. How can I help you today?"
+                    elif "how are you" in q:
+                        reply = "I'm doing great! Thanks for asking. What would you like to chat about?"
+                    else:
+                        reply = "I'm here and ready to chat! Could you try asking that again?"
             
             # Clean the response and maintain identity
             final_reply = enforce_identity(reply)

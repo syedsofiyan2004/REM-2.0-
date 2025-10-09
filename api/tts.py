@@ -28,6 +28,29 @@ class handler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps({'error': 'Provide text to speak'}).encode())
                 return
             
+            # Detect Hinglish (Hindi written in English letters) and common Hindi words
+            hinglish_words = [
+                'aap', 'aapka', 'aapki', 'haan', 'nahin', 'nahi', 'kya', 'kaise', 'kab', 'kahan', 
+                'kyun', 'kaun', 'main', 'meri', 'mera', 'mujhe', 'tumhara', 'tumhari', 'tumhe',
+                'woh', 'yeh', 'yah', 'iske', 'uske', 'iska', 'uska', 'bahut', 'accha', 'achha',
+                'bura', 'theek', 'thik', 'samjha', 'samjhi', 'pata', 'malum', 'dekho', 'suno',
+                'bol', 'bolo', 'kar', 'karo', 'mat', 'padh', 'padho', 'likh', 'likho', 'chal',
+                'chalo', 'aa', 'aao', 'ja', 'jao', 'paani', 'pani', 'khana', 'ghar', 'kaam',
+                'kitna', 'kitni', 'kuch', 'sab', 'sabhi', 'mere', 'tere', 'humara', 'tumhara',
+                'bhi', 'toh', 'to', 'se', 'mein', 'pe', 'par', 'ke', 'ki', 'ka', 'hai', 'hain',
+                'tha', 'thi', 'the', 'hoga', 'hogi', 'honge', 'dost', 'bhai', 'behen', 'mama',
+                'papa', 'dada', 'dadi', 'nana', 'nani', 'beta', 'beti'
+            ]
+            
+            # Check if text contains significant Hinglish words
+            text_words = text.lower().split()
+            hinglish_count = sum(1 for word in text_words if word in hinglish_words)
+            hinglish_ratio = hinglish_count / len(text_words) if text_words else 0
+            
+            # If more than 20% of words are Hinglish, switch to Hindi TTS
+            if hinglish_ratio > 0.2 and not lang:
+                lang = 'hi-IN'  # Switch to Hindi TTS automatically
+            
             # Generate speech
             audio_b64, marks = polly_tts_with_visemes(text, lang, mode)
             
