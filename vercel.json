@@ -1,12 +1,4 @@
 {
-  "builds": [
-    {
-      "src": "api/chat.py",
-      "use": "@vercel/python"
-    },
-    {
-      "src": "api/health.py",
-      "use": "@vercel/python"
-    }
-  ]
+  "cleanUrls": true,
+  "trailingSlash": false
 }
