@@ -48,6 +48,35 @@
   select.pill{appearance:none;background:var(--pill);color:#eaf2ff}
   .dot{width:8px;height:8px;border-radius:50%;background:#78859a}.dot.on{background:var(--green);box-shadow:0 0 8px var(--green)}
   #badge{position:fixed;top:12px;left:12px;z-index:2;padding:6px 10px;border-radius:10px;border:1px solid #1e2a3f;background:var(--glass);font-weight:700;letter-spacing:.3px;font-size:14px}
+  
+  /* Floating controls panel */
+  #controls-panel{position:fixed;top:20px;right:420px;z-index:3;display:flex;flex-direction:column;align-items:flex-end}
+  .controls-btn{background:rgba(16,24,39,0.95);border:1px solid #2a3d59;color:var(--fg);padding:12px;border-radius:50%;cursor:pointer;font-size:16px;transition:all 0.3s ease;backdrop-filter:blur(20px);box-shadow:0 4px 12px rgba(0,0,0,0.2)}
+  .controls-btn:hover{background:rgba(26,42,71,0.95);transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,0.3)}
+  #controls-content{background:rgba(16,24,39,0.95);border:1px solid #2a3d59;border-radius:16px;padding:20px;margin-top:8px;min-width:280px;backdrop-filter:blur(20px);box-shadow:0 8px 32px rgba(0,0,0,0.3);transition:all 0.3s cubic-bezier(0.23, 1, 0.32, 1);transform-origin:top right}
+  .controls-hidden{opacity:0;transform:scale(0.9) translateY(-10px);pointer-events:none}
+  .controls-visible{opacity:1;transform:scale(1) translateY(0);pointer-events:all}
+  .control-section{margin-bottom:16px}
+  .control-section:last-child{margin-bottom:0}
+  .control-title{font-weight:600;letter-spacing:.3px;margin-bottom:8px;font-size:14px;color:var(--fg)}
+  .control-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .control-pill{padding:8px 12px;border-radius:20px;background:var(--pill);border:1px solid var(--pillBorder);color:#eaf2ff;font-size:13px;cursor:pointer;transition:all 0.2s ease;text-align:center}
+  .control-pill:hover{background:#1a2a47;border-color:#3d4f73;transform:translateY(-1px)}
+  .control-pill:active{transform:translateY(0)}
+  
+  /* Better chat bubbles */
+  .bubble{padding:12px 16px;border-radius:12px;margin:8px 0;border:1px solid #1e2a3f;line-height:1.5;word-wrap:break-word;transition:all 0.2s ease;position:relative;font-size:14px}
+  .bubble:hover{border-color:#3d4f73;transform:translateY(-1px)}
+  .user{background:linear-gradient(135deg,#1a2851,#0f223f);border-left:3px solid var(--accent);margin-left:20px}
+  .bot{background:linear-gradient(135deg,#1a2433,#121a2a);animation:fadeInUp 0.3s ease-out;margin-right:20px}
+  
+  @keyframes fadeInUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  
+  /* Responsive adjustments */
+  @media (max-width: 1200px) {
+    #controls-panel{right:20px;top:80px}
+    #panel{width:min(350px,90vw)}
+  }
   #hambtn{position:fixed;top:12px;right:12px;z-index:3;padding:8px 10px;border-radius:10px;border:1px solid #1e2a3f;background:var(--glass);font-weight:700;min-height:40px;min-width:40px}
   #subtitle{position:fixed;left:50%;bottom:20%;transform:translateX(-50%);z-index:2;
        max-width:min(85vw,700px); text-align:center; padding:8px 12px; border-radius:10px;
@@ -117,37 +146,47 @@
     <div style="font-weight:700;letter-spacing:.4px;font-size:18px;margin-bottom:8px">💬 Chat with Rem</div>
     <div id="current-mode" style="font-size:12px;color:#78859a;margin-bottom:16px;padding:4px 8px;background:rgba(99,102,241,0.1);border-radius:8px;border:1px solid rgba(99,102,241,0.2);">Mode: Default</div>
     
-    <div id="log"></div>
+    <!-- Expanded chat area -->
+    <div id="log" style="flex:1;min-height:400px;max-height:60vh;overflow-y:auto;padding:12px;background:rgba(11,16,32,0.4);border-radius:12px;border:1px solid #1e2a3f;margin-bottom:16px;scroll-behavior:smooth;"></div>
     
-    <div class="row" style="margin-top:16px">
+    <div class="row" style="margin-bottom:12px">
       <input id="inp" placeholder="Type your message…" />
       <button id="send" style="background:var(--accent);border-color:var(--accent)">Send</button>
     </div>
     
-    <!-- Simplified personality modes -->
-    <div style="font-weight:600;letter-spacing:.3px;margin:20px 0 8px 0;font-size:14px">🎭 Personality</div>
-    <div class="row" style="flex-wrap:wrap;gap:8px;margin-bottom:16px">
-      <button class="pill style" data-style="witty" title="Humorous and playful">✨ Witty</button>
-      <button class="pill style" data-style="empathetic" title="Caring and supportive">💞 Caring</button>
-      <button class="pill style" data-style="precise" title="Direct and focused">🧠 Precise</button>
-      <button class="pill" id="resetStyle" title="Default friendly mode">🔄 Default</button>
-    </div>
-    
-    <!-- Quick actions -->
-    <div style="font-weight:600;letter-spacing:.3px;margin:20px 0 8px 0;font-size:14px">⚡ Quick Actions</div>
-    <div class="row" style="flex-wrap:wrap;gap:8px;margin-bottom:16px">
-      <button class="pill" data-say="Tell me an inspiring story">� Story</button>
-      <button class="pill" data-say="Help me relax with a breathing exercise">� Relax</button>
-      <button class="pill" data-say="Share a fascinating fact">� Learn</button>
-    </div>
-    
-    <!-- Singing section (simplified) -->
-    <div style="font-weight:600;letter-spacing:.3px;margin:20px 0 8px 0;font-size:14px">🎵 Voice & Music</div>
-    <div class="row">
-      <input id="singinp" placeholder="What should I sing about?" />
-      <button id="singGo" style="background:var(--accent-light);border-color:var(--accent-light)">Sing</button>
+    <!-- Voice controls (compact) -->
+    <div class="row" style="margin-bottom:8px">
+      <input id="singinp" placeholder="Song lyrics..." style="flex:1;font-size:14px;padding:10px" />
+      <button id="singGo" style="background:#8b5cf6;border-color:#8b5cf6;font-size:14px;padding:10px 14px">Sing</button>
     </div>
   </aside>
+
+  <!-- Separate floating controls panel -->
+  <div id="controls-panel">
+    <button id="controls-toggle" class="controls-btn">⚙️</button>
+    <div id="controls-content" class="controls-hidden">
+      <!-- Personality modes -->
+      <div class="control-section">
+        <div class="control-title">🎭 Personality</div>
+        <div class="control-grid">
+          <button class="control-pill style" data-style="witty" title="Humorous and playful">✨ Witty</button>
+          <button class="control-pill style" data-style="empathetic" title="Caring and supportive">💞 Caring</button>
+          <button class="control-pill style" data-style="precise" title="Direct and focused">🧠 Precise</button>
+          <button class="control-pill" id="resetStyle" title="Default friendly mode">🔄 Default</button>
+        </div>
+      </div>
+      
+      <!-- Quick actions -->
+      <div class="control-section">
+        <div class="control-title">⚡ Quick Actions</div>
+        <div class="control-grid">
+          <button class="control-pill" data-say="Tell me an inspiring story">📚 Story</button>
+          <button class="control-pill" data-say="Help me relax with a breathing exercise">🧘 Relax</button>
+          <button class="control-pill" data-say="Share a fascinating fact">🎓 Learn</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <div id="voicebar">
     <button id="mic" class="pill" style="background:var(--accent);border-color:var(--accent)">🎙️ Talk</button>
@@ -200,8 +239,8 @@ const elements = {
   zoomOut: document.getElementById('zoomOut'),
   zoomReset: document.getElementById('zoomReset')
 };
-const suggestionButtons = () => Array.from(document.querySelectorAll('#panel .pill[data-say]'));
-const styleButtons = () => Array.from(document.querySelectorAll('#panel .pill.style'));
+const suggestionButtons = () => Array.from(document.querySelectorAll('.pill[data-say], .control-pill[data-say]'));
+const styleButtons = () => Array.from(document.querySelectorAll('.style, .control-pill.style'));
 
 const typingEl = Object.assign(document.createElement('div'), {
   className: 'bubble bot',
@@ -221,6 +260,8 @@ try{
 
 function add(text, who){
   try {
+    console.log(`💬 Adding ${who} message:`, text);
+    
     // Clean the text for display (remove stage directions and name prefixes)
     const cleanText = who === 'bot' ? sanitizeCaption(text) : text;
     const d = Object.assign(document.createElement('div'), {
@@ -228,11 +269,19 @@ function add(text, who){
       textContent: cleanText
     });
     
+    // Add timestamp for debugging
+    const timestamp = new Date().toLocaleTimeString();
+    d.setAttribute('data-time', timestamp);
+    
     if (elements.log) {
       elements.log.appendChild(d);
+      console.log('✅ Message added to chat log');
       d.scrollIntoView({behavior:'smooth', block:'end'});
+      
+      // Force a reflow to ensure visibility
+      elements.log.scrollTop = elements.log.scrollHeight;
     } else {
-      console.error('❌ Chat log element not found!');
+      console.error('❌ Chat log element not found!', elements);
     }
   } catch (error) {
     console.error('❌ Error adding chat message:', error);
@@ -1136,6 +1185,30 @@ function initializeUI() {
     }
   } catch (error) {
     console.error('❌ Error setting up hamburger menu:', error);
+  }
+  
+  // Setup floating controls panel
+  try {
+    const controlsToggle = document.getElementById('controls-toggle');
+    const controlsContent = document.getElementById('controls-content');
+    if (controlsToggle && controlsContent) {
+      controlsToggle.addEventListener('click', () => {
+        const isVisible = controlsContent.classList.contains('controls-visible');
+        if (isVisible) {
+          controlsContent.classList.remove('controls-visible');
+          controlsContent.classList.add('controls-hidden');
+        } else {
+          controlsContent.classList.remove('controls-hidden');
+          controlsContent.classList.add('controls-visible');
+        }
+        console.log('⚙️ Controls panel toggled, visible:', !isVisible);
+      });
+      console.log('✅ Controls panel initialized');
+    } else {
+      console.error('❌ Controls panel elements not found:', { toggle: !!controlsToggle, content: !!controlsContent });
+    }
+  } catch (error) {
+    console.error('❌ Error setting up controls panel:', error);
   }
   
   // Style buttons (personality modes)
