@@ -1294,6 +1294,12 @@ function initializeUI() {
   // Load chat history after UI is set up
   loadChatHistory();
   
+  // Add a test welcome message to verify chat display is working
+  setTimeout(() => {
+    add("👋 Welcome! I'm Rem. Try typing a message to test the chat functionality!", 'bot');
+    console.log('🧪 Test welcome message added');
+  }, 1000);
+  
   console.log('✅ UI initialization complete');
 }
 
