@@ -1,12 +1,14 @@
 {
-  "functions": {
-    "api/chat.py": {
-      "runtime": "python3.12"
+  "builds": [
+    {
+      "src": "api/chat.py",
+      "use": "@vercel/python"
     },
-    "api/health.py": {
-      "runtime": "python3.12"
+    {
+      "src": "api/health.py", 
+      "use": "@vercel/python"
     }
-  },
+  ],
   "rewrites": [
     {
       "source": "/api/chat",
