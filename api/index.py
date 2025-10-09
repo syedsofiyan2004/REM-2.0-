@@ -1,38 +1,36 @@
 import sys
 import os
 from pathlib import Path
+import json
 
 # Add the parent directory to sys.path so we can import from app
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Import the FastAPI app
-try:
-    from app.main import app
-    
-    # For Vercel, we need to use the ASGI handler
-    from mangum import Adapter
-    handler = Adapter(app)
-except ImportError as e:
-    print(f"Import error: {e}")
-    # Fallback basic handler
-    from http.server import BaseHTTPRequestHandler
-    import json
-    
-    class handler(BaseHTTPRequestHandler):
-        def do_GET(self):
-            if self.path == '/api/health':
-                self.send_response(200)
-                self.send_header('Content-type', 'application/json')
-                self.send_header('Access-Control-Allow-Origin', '*')
-                self.end_headers()
-                self.wfile.write(json.dumps({"ok": True, "error": f"Import failed: {e}"}).encode())
-            else:
-                self.send_response(404)
-                self.end_headers()
+def handler(request):
+    """Simple Vercel serverless function handler"""
+    try:
+        # Import here to avoid cold start issues
+        from app.main import app
+        from mangum import Adapter
         
-        def do_POST(self):
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            self.wfile.write(json.dumps({"message": "API endpoint", "error": f"Import failed: {e}"}).encode())
+        # Create ASGI adapter
+        asgi_handler = Adapter(app)
+        return asgi_handler(request)
+        
+    except Exception as e:
+        # Fallback response for debugging
+        return {
+            'statusCode': 200,
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type'
+            },
+            'body': json.dumps({
+                'ok': False,
+                'error': str(e),
+                'path': request.get('path', 'unknown'),
+                'method': request.get('httpMethod', 'unknown')
+            })
+        }

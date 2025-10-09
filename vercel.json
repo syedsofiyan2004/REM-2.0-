@@ -1,8 +1,20 @@
 {
+  "functions": {
+    "api/chat.py": {
+      "runtime": "python3.12"
+    },
+    "api/health.py": {
+      "runtime": "python3.12"
+    }
+  },
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api/index.py"
+      "source": "/api/chat",
+      "destination": "/api/chat.py"
+    },
+    {
+      "source": "/api/health",
+      "destination": "/api/health.py"
     },
     {
       "source": "/static/(.*)",
